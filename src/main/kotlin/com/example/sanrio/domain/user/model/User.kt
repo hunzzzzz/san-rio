@@ -26,8 +26,8 @@ class User(
     @Column(name = "nickname", nullable = false, unique = true)
     val nickname: String,
 
-    @Column(name = "address", nullable = false)
-    val address: String?
+    @Column(name = "address", nullable = true)
+    val address: String? = null
 ) : BaseEntity() {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
