@@ -23,7 +23,7 @@ class User(
     @Column(name = "name", nullable = false)
     val name: String,
 
-    @Column(name = "nickname", nullable = false, unique = true)
+    @Column(name = "nickname", nullable = false)
     val nickname: String,
 
     @Column(name = "address", nullable = true)
