@@ -1,7 +1,6 @@
 package com.example.sanrio.domain.character.model
 
 import jakarta.persistence.*
-import java.time.LocalDate
 
 @Entity
 @Table(name = "characters")
@@ -10,7 +9,7 @@ class Character(
     val name: String,
 
     @Column(name = "debut", nullable = false)
-    val debut: LocalDate
+    val debutYear: Int
 ) {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
