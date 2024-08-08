@@ -16,6 +16,13 @@ data class AddProductRequest(
     @field:NotBlank(message = "상품 설명은 필수 입력 항목입니다.")
     val detail: String,
 
+    @field:NotNull(message = "가격은 필수 입력 항목입니다.")
+    @field:Range(
+        message = "올바르지 않은 수량 형식입니다.",
+        min = 100
+    )
+    val price: Int?,
+
     @field:NotNull(message = "재고 수량은 필수 입력 항목입니다.")
     @field:Range(
         message = "올바르지 않은 수량 형식입니다.",
@@ -26,6 +33,7 @@ data class AddProductRequest(
     fun to(character: Character) = Product(
         name = this.name,
         detail = this.detail,
+        price = this.price!!,
         stock = this.stock!!,
         character = character
     )
