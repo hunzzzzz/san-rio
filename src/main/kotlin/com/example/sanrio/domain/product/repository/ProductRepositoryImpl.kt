@@ -2,6 +2,7 @@ package com.example.sanrio.domain.product.repository
 
 import com.example.sanrio.domain.product.dto.response.ProductResponse
 import com.example.sanrio.domain.product.dto.response.ProductSortCondition
+import com.example.sanrio.domain.product.model.CharacterName
 import com.example.sanrio.domain.product.model.ProductStatus
 import com.example.sanrio.domain.product.model.QProduct
 import com.querydsl.core.BooleanBuilder
@@ -20,20 +21,30 @@ class ProductRepositoryImpl(
     private val product = QProduct.product
 
     @Description("상품 목록을 조회하는 메서드")
-    override fun getProducts(pageable: Pageable, status: ProductStatus?, sort: ProductSortCondition?) =
-        BooleanBuilder().let {
-            status?.let { status -> it.and(product.status.eq(status)) }
-        }.let {
-            PageImpl(
-                getContents(
-                    pageable = pageable,
-                    whereClause = it ?: BooleanBuilder(),
-                    sort = getOrderCondition(sort = sort, product = product)
-                ),
-                pageable,
-                getTotalElements()
-            )
-        }
+    override fun getProducts(
+        pageable: Pageable,
+        status: ProductStatus?,
+        characterName: CharacterName?,
+        sort: ProductSortCondition?
+    ) =
+        BooleanBuilder()
+            .let {
+                status?.let { status -> it.and(product.status.eq(status)) }
+                it
+            }.let {
+                characterName?.let { characterName -> it.and(product.characterName.eq(characterName)) }
+                it
+            }.let {
+                PageImpl(
+                    getContents(
+                        pageable = pageable,
+                        whereClause = it ?: BooleanBuilder(),
+                        sort = getOrderCondition(sort = sort, product = product)
+                    ),
+                    pageable,
+                    getTotalElements()
+                )
+            }
 
     @Description("페이지에 포함될 상품 데이터를 가져오는 내부 메서드")
     private fun getContents(pageable: Pageable, whereClause: BooleanBuilder, sort: OrderSpecifier<*>) =
@@ -44,7 +55,7 @@ class ProductRepositoryImpl(
                 product.status,
                 product.name,
                 product.price,
-                product.character.name,
+                product.characterName,
                 product.createdAt
             )
         ).from(product)
