@@ -1,9 +1,12 @@
 package com.example.sanrio.domain.user.service
 
+import com.example.sanrio.domain.user.dto.request.LoginRequest
 import com.example.sanrio.domain.user.dto.request.SignUpRequest
+import com.example.sanrio.domain.user.model.User
 import com.example.sanrio.domain.user.repository.UserRepository
 import com.example.sanrio.global.exception.case.DuplicatedValueException
 import com.example.sanrio.global.exception.case.InvalidValueException
+import com.example.sanrio.global.exception.case.LoginException
 import org.springframework.context.annotation.Description
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
@@ -28,4 +31,20 @@ class UserService(
             .let { request.to(passwordEncoder = passwordEncoder) } // DTO -> 엔티티
             .let { userRepository.save(it) } // 저장
             .let { } // 리턴값 X
+
+    @Description("로그인 시 이메일로 유저 정보를 가져오는 메서드")
+    private fun findUserByEmail(email: String) =
+        userRepository.findByEmail(email = email) ?: throw LoginException()
+
+    @Description("로그인 시 패스워드 일치 여부를 검증하는 메서드")
+    private fun validatePassword(user: User, password: String) =
+        if (!passwordEncoder.matches(password, user.password)) throw LoginException() else Unit
+
+    @Description("로그인")
+    fun login(request: LoginRequest) =
+        validatePassword(
+            user = findUserByEmail(email = request.email),
+            password = request.password
+        ) // 패스워드 검증
+            .let { } // TODO : 추후 토큰을 리턴할 예정
 }

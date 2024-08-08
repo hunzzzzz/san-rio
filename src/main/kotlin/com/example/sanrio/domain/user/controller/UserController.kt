@@ -1,5 +1,6 @@
 package com.example.sanrio.domain.user.controller
 
+import com.example.sanrio.domain.user.dto.request.LoginRequest
 import com.example.sanrio.domain.user.dto.request.SignUpRequest
 import com.example.sanrio.domain.user.service.UserService
 import jakarta.validation.Valid
@@ -18,4 +19,10 @@ class UserController(
     fun signup(
         @Valid @RequestBody request: SignUpRequest
     ) = ResponseEntity.ok().body(userService.signup(request = request))
+
+    @Description("로그인")
+    @PostMapping("/login")
+    fun login(
+        @Valid @RequestBody request: LoginRequest
+    ) = ResponseEntity.ok().body(userService.login(request = request))
 }
