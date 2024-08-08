@@ -7,6 +7,7 @@ data class ProductDetailResponse(
     val productId: Long,
     val name: String,
     val detail: String,
+    val price: Int,
     val stock: Int?,
     val createdAt: LocalDateTime
 ) {
@@ -15,6 +16,7 @@ data class ProductDetailResponse(
             productId = product.id!!,
             name = product.name,
             detail = product.detail,
+            price = product.price,
             stock = if (product.stock < 10) product.stock else null,
             createdAt = product.createdAt
         )

@@ -17,6 +17,9 @@ class Product(
     @Column(name = "detail", nullable = false)
     val detail: String,
 
+    @Column(name = "price", nullable = false)
+    val price: Int,
+
     @Column(name = "stock", nullable = false)
     val stock: Int,
 
