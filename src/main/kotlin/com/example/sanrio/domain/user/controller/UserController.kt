@@ -1,11 +1,13 @@
 package com.example.sanrio.domain.user.controller
 
+import com.example.sanrio.domain.user.dto.request.AddressRequest
 import com.example.sanrio.domain.user.dto.request.LoginRequest
 import com.example.sanrio.domain.user.dto.request.SignUpRequest
 import com.example.sanrio.domain.user.service.UserService
 import jakarta.validation.Valid
 import org.springframework.context.annotation.Description
 import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
@@ -25,4 +27,11 @@ class UserController(
     fun login(
         @Valid @RequestBody request: LoginRequest
     ) = ResponseEntity.ok().body(userService.login(request = request))
+
+    @Description("주소 설정")
+    @PostMapping("/users/{userId}/address")
+    fun setAddress(
+        @PathVariable userId: Long,
+        @Valid @RequestBody request: AddressRequest
+    ) = ResponseEntity.ok().body(userService.setAddress(userId = userId, request = request))
 }
