@@ -2,6 +2,7 @@ package com.example.sanrio.global.exception
 
 import com.example.sanrio.global.exception.case.DuplicatedValueException
 import com.example.sanrio.global.exception.case.InvalidValueException
+import com.example.sanrio.global.exception.case.ModelNotFoundException
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ExceptionHandler
@@ -26,5 +27,11 @@ class ExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(DuplicatedValueException::class)
     fun handleDuplicatedValueException(e: DuplicatedValueException) =
+        ErrorResponse(message = e.message!!, statusCode = "400 Bad Request")
+
+    // id에 해당하는 모델(엔티티)이 없는 경우
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(ModelNotFoundException::class)
+    fun handleModelNotFoundException(e: ModelNotFoundException) =
         ErrorResponse(message = e.message!!, statusCode = "400 Bad Request")
 }
