@@ -2,6 +2,7 @@ package com.example.sanrio.global.exception
 
 import com.example.sanrio.global.exception.case.DuplicatedValueException
 import com.example.sanrio.global.exception.case.InvalidValueException
+import com.example.sanrio.global.exception.case.LoginException
 import com.example.sanrio.global.exception.case.ModelNotFoundException
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.MethodArgumentNotValidException
@@ -33,5 +34,11 @@ class ExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(ModelNotFoundException::class)
     fun handleModelNotFoundException(e: ModelNotFoundException) =
+        ErrorResponse(message = e.message!!, statusCode = "400 Bad Request")
+
+    // 로그인 시 이메일 혹은 비밀번호를 잘못 입력한 경우
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(LoginException::class)
+    fun handleLoginException(e: LoginException) =
         ErrorResponse(message = e.message!!, statusCode = "400 Bad Request")
 }
