@@ -1,5 +1,6 @@
 package com.example.sanrio.domain.product.dto.response
 
+import com.example.sanrio.domain.product.model.CharacterName
 import com.example.sanrio.domain.product.model.Product
 import com.example.sanrio.domain.product.model.ProductStatus
 import java.time.LocalDateTime
@@ -11,7 +12,7 @@ data class ProductDetailResponse(
     val detail: String,
     val price: Int,
     val stock: Int?,
-    val characterName: String,
+    val characterName: CharacterName,
     val createdAt: LocalDateTime
 ) {
     companion object {
@@ -22,7 +23,7 @@ data class ProductDetailResponse(
             detail = product.detail,
             price = product.price,
             stock = if (product.stock < 10) product.stock else null,
-            characterName = product.character.name,
+            characterName = product.characterName,
             createdAt = product.createdAt
         )
     }

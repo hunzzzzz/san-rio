@@ -1,15 +1,12 @@
 package com.example.sanrio.domain.product.dto.request
 
-import com.example.sanrio.domain.character.model.Character
+import com.example.sanrio.domain.product.model.CharacterName
 import com.example.sanrio.domain.product.model.Product
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.NotNull
 import org.hibernate.validator.constraints.Range
 
 data class AddProductRequest(
-    @field:NotNull(message = "캐릭터를 선택해주세요.")
-    val characterId: Long?,
-
     @field:NotBlank(message = "상품 이름은 필수 입력 항목입니다.")
     val name: String,
 
@@ -30,11 +27,11 @@ data class AddProductRequest(
     )
     val stock: Int?
 ) {
-    fun to(character: Character) = Product(
+    fun to(characterName: CharacterName) = Product(
+        characterName = characterName,
         name = this.name,
         detail = this.detail,
         price = this.price!!,
-        stock = this.stock!!,
-        character = character
+        stock = this.stock!!
     )
 }

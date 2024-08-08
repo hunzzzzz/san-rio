@@ -1,6 +1,5 @@
 package com.example.sanrio.domain.product.model
 
-import com.example.sanrio.domain.character.model.Character
 import com.example.sanrio.global.model.BaseEntity
 import jakarta.persistence.*
 
@@ -10,6 +9,10 @@ class Product(
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     val status: ProductStatus = ProductStatus.SALE,
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "character_name", nullable = false)
+    val characterName: CharacterName,
 
     @Column(name = "name", nullable = false)
     val name: String,
@@ -21,11 +24,7 @@ class Product(
     val price: Int,
 
     @Column(name = "stock", nullable = false)
-    val stock: Int,
-
-    @ManyToOne
-    @JoinColumn(name = "character_id", nullable = false)
-    val character: Character
+    val stock: Int
 ) : BaseEntity() {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
