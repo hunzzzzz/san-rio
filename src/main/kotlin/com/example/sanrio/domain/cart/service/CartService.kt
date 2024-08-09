@@ -64,10 +64,10 @@ class CartService(
         checkItemCount(count = count, stock = product.stock)
 
         entityFinder.findCartItemByCartAndProduct(cart = cart, product = product)
-            .let {
+            .let { cartItem ->
                 // totalCount 에서 기존값을 뺀 다음, 새로운 값을 더한다.
-                cart.updateTotalPrice(product.price * it.count * (-1) + product.price * count)
-                it.updateCount(count = count)
+                cart.updateTotalPrice(unitPrice = cartItem.unitPrice * (-1) + product.price * count)
+                cartItem.updateCount(count = count)
             }
     }
 
@@ -78,6 +78,9 @@ class CartService(
         val cart = entityFinder.findCartByUser(user = user)
 
         entityFinder.findCartItemByCartAndProduct(cart = cart, product = product)
-            .let { cartItemRepository.delete(it) }
+            .let { cartItem ->
+                cart.updateTotalPrice(unitPrice = cartItem.unitPrice * (-1))
+                cartItemRepository.delete(cartItem)
+            }
     }
 }
