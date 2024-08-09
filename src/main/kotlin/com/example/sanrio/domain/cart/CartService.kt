@@ -1,5 +1,6 @@
 package com.example.sanrio.domain.cart
 
+import com.example.sanrio.domain.cart.dto.response.CartItemResponse
 import com.example.sanrio.domain.cart.model.CartItem
 import com.example.sanrio.domain.cart.repository.CartItemRepository
 import com.example.sanrio.global.exception.case.DuplicatedValueException
@@ -30,9 +31,24 @@ class CartService(
         val cart = entityFinder.findCartByUser(user = user)
 
         checkItemCount(count = count, stock = product.stock)
-        check(cartItemRepository.existsByCartAndProduct(cart = cart, product = product)) { throw DuplicatedValueException("상품") }
+        check(
+            !cartItemRepository.existsByCartAndProduct(
+                cart = cart,
+                product = product
+            )
+        ) { throw DuplicatedValueException("상품") }
 
-        CartItem(count = count, product = product, cart = cart).let { cartItemRepository.save(it) }
+        CartItem(count = count, totalPrice = product.price * count, product = product, cart = cart)
+            .let { cartItemRepository.save(it) }
+    }
+
+    @Description("장바구니에 상품 목록 조회")
+    @Transactional
+    fun getItems(userId: Long): List<CartItemResponse> {
+        val user = entityFinder.findUserById(userId = userId)
+        val cart = entityFinder.findCartByUser(user = user)
+
+        return cartItemRepository.getCartItems(cart = cart)
     }
 
     @Description("장바구니에 상품 수량 수정")

@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.stereotype.Repository
 
 @Repository
-interface CartItemRepository : JpaRepository<CartItem, Long> {
+interface CartItemRepository : JpaRepository<CartItem, Long>, CartItemRepositoryCustom {
     fun findByCartAndProduct(cart: Cart, product: Product): CartItem?
 
     fun existsByCartAndProduct(cart: Cart, product: Product): Boolean
