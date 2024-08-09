@@ -61,6 +61,16 @@ class CartService(
         checkItemCount(count = count, stock = product.stock)
 
         entityFinder.findCartItemByCartAndProduct(cart = cart, product = product)
-            .updateCount(count = count)
+            .let { it.updateCount(count = count) }
+    }
+
+    @Description("장바구니에 상품 삭제")
+    fun deleteItem(userId: Long, productId: Long) {
+        val user = entityFinder.findUserById(userId = userId)
+        val product = entityFinder.findProductById(productId = productId)
+        val cart = entityFinder.findCartByUser(user = user)
+
+        entityFinder.findCartItemByCartAndProduct(cart = cart, product = product)
+            .let { cartItemRepository.delete(it) }
     }
 }

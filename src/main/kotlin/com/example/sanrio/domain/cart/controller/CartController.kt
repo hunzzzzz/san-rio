@@ -37,4 +37,13 @@ class CartController(
     ) =
         cartService.updateItemCount(userId = userId, productId = productId, count = count)
             .let { ResponseEntity.ok().body(it) }
+
+    @Description("장바구니에 상품 삭제")
+    @DeleteMapping("/products/{productId}")
+    fun deleteItem(
+        @RequestParam userId: Long, // TODO : userID는 추후 UserPrincipal에서 추출한다.
+        @PathVariable productId: Long
+    ) =
+        cartService.deleteItem(userId = userId, productId = productId)
+            .let { ResponseEntity.ok().body(it) }
 }
