@@ -11,11 +11,10 @@ import com.example.sanrio.domain.user.repository.UserRepository
 import com.example.sanrio.global.exception.case.DuplicatedValueException
 import com.example.sanrio.global.exception.case.InvalidValueException
 import com.example.sanrio.global.exception.case.LoginException
-import com.example.sanrio.global.exception.case.ModelNotFoundException
 import com.example.sanrio.global.utility.Encryptor
+import com.example.sanrio.global.utility.EntityFinder
 import jakarta.transaction.Transactional
 import org.springframework.context.annotation.Description
-import org.springframework.data.repository.findByIdOrNull
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 
@@ -25,7 +24,8 @@ class UserService(
     private val addressRepository: AddressRepository,
     private val cartRepository: CartRepository,
     private val encryptor: Encryptor,
-    private val passwordEncoder: PasswordEncoder
+    private val passwordEncoder: PasswordEncoder,
+    private val entityFinder: EntityFinder
 ) {
     @Description("회원가입 시 입력한 이메일에 대한 중복 체크")
     private fun validateEmailDuplication(email: String) =
@@ -63,10 +63,6 @@ class UserService(
         ) // 패스워드 검증
             .let { } // TODO : 추후 토큰을 리턴할 예정
 
-    @Description("userId로 유저 엔티티를 가져오는 메서드")
-    private fun findUserById(userId: Long) =
-        userRepository.findByIdOrNull(userId) ?: throw ModelNotFoundException("유저")
-
     @Description("주소 설정 시 우편 번호 형식 체크")
     private fun validateZipCode(zipCode: String) =
         if (zipCode.toIntOrNull() == null || zipCode.length != 5) throw InvalidValueException("우편번호") else Unit
@@ -75,7 +71,7 @@ class UserService(
     @Transactional
     fun setAddress(userId: Long, request: AddressRequest) =
         validateZipCode(zipCode = request.zipCode!!)
-            .let { findUserById(userId = userId) }
+            .let { entityFinder.findUserById(userId = userId) }
             .let {
                 // 이미 입력한 주소가 존재하는 경우
                 if (addressRepository.existsByUser(user = it))

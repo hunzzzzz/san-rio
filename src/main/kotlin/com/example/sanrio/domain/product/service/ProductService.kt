@@ -7,20 +7,16 @@ import com.example.sanrio.domain.product.dto.response.ProductSortCondition
 import com.example.sanrio.domain.product.model.CharacterName
 import com.example.sanrio.domain.product.model.ProductStatus
 import com.example.sanrio.domain.product.repository.ProductRepository
-import com.example.sanrio.global.exception.case.ModelNotFoundException
+import com.example.sanrio.global.utility.EntityFinder
 import org.springframework.context.annotation.Description
 import org.springframework.data.domain.PageRequest
-import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 
 @Service
 class ProductService(
-    private val productRepository: ProductRepository
+    private val productRepository: ProductRepository,
+    private val entityFinder: EntityFinder
 ) {
-    @Description("productId로 상품 엔티티를 가져오는 메서드")
-    private fun findProductById(productId: Long) =
-        productRepository.findByIdOrNull(productId) ?: throw ModelNotFoundException("상품")
-
     @Description("상품 추가")
     fun addProduct(characterName: CharacterName, request: AddProductRequest) =
         request.to(characterName = characterName) // DTO -> 엔티티
@@ -29,7 +25,7 @@ class ProductService(
 
     @Description("상품 세부 정보")
     fun getProduct(productId: Long) =
-        findProductById(productId = productId)
+        entityFinder.findProductById(productId = productId)
             .let { ProductDetailResponse.from(product = it) }
 
     @Description("상품 목록")
