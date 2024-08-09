@@ -2,6 +2,7 @@ package com.example.sanrio.global.exception
 
 import com.example.sanrio.global.exception.case.*
 import org.springframework.http.HttpStatus
+import org.springframework.mail.MailSendException
 import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.ResponseStatus
@@ -43,5 +44,17 @@ class ExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(ItemException::class)
     fun handleOutOfStockException(e: ItemException) =
+        ErrorResponse(message = e.message!!, statusCode = "400 Bad Request")
+
+    // 메일 전송 관련 에러
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    @ExceptionHandler(MailSendException::class)
+    fun handleMailSendException(e: MailSendException) =
+        ErrorResponse(message = e.message!!, statusCode = "500 Internal Server Error")
+
+    // 본인인증 관련 에러
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(VerificationException::class)
+    fun handleVerificationException(e: VerificationException) =
         ErrorResponse(message = e.message!!, statusCode = "400 Bad Request")
 }
