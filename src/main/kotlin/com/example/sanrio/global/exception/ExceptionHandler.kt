@@ -39,7 +39,7 @@ class ExceptionHandler {
     fun handleLoginException(e: LoginException) =
         ErrorResponse(message = e.message!!, statusCode = "400 Bad Request")
 
-    // 상품 주문 관련 에러 장바구니 추가 혹은 상품 주문 시 재고를 초과하는 수량을 주문한 경우
+    // 상품 주문 관련 에러
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(ItemException::class)
     fun handleOutOfStockException(e: ItemException) =

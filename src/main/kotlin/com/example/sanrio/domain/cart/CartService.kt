@@ -2,6 +2,7 @@ package com.example.sanrio.domain.cart
 
 import com.example.sanrio.domain.cart.model.CartItem
 import com.example.sanrio.domain.cart.repository.CartItemRepository
+import com.example.sanrio.global.exception.case.NegativeCountException
 import com.example.sanrio.global.exception.case.OutOfStockException
 import com.example.sanrio.global.exception.case.TooManyItemsException
 import com.example.sanrio.global.utility.EntityFinder
@@ -16,6 +17,7 @@ class CartService(
 ) {
     @Description("수량의 유효성을 체크")
     fun checkItemCount(count: Int, stock: Int) {
+        check(count > 0) { throw NegativeCountException() } // 수량은 0보다 커야한다.
         check(count <= 5) { throw TooManyItemsException() } // 최대 5개의 동일 상품만 담을 수 있다.
         check(count <= stock) { throw OutOfStockException(stock = stock) } // 재고를 초과하는 수량을 담을 수 없다.
     }
