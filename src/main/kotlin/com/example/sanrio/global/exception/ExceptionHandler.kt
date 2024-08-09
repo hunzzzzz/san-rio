@@ -1,9 +1,6 @@
 package com.example.sanrio.global.exception
 
-import com.example.sanrio.global.exception.case.DuplicatedValueException
-import com.example.sanrio.global.exception.case.InvalidValueException
-import com.example.sanrio.global.exception.case.LoginException
-import com.example.sanrio.global.exception.case.ModelNotFoundException
+import com.example.sanrio.global.exception.case.*
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ExceptionHandler
@@ -40,5 +37,11 @@ class ExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(LoginException::class)
     fun handleLoginException(e: LoginException) =
+        ErrorResponse(message = e.message!!, statusCode = "400 Bad Request")
+
+    // 상품 주문 관련 에러 장바구니 추가 혹은 상품 주문 시 재고를 초과하는 수량을 주문한 경우
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(ItemException::class)
+    fun handleOutOfStockException(e: ItemException) =
         ErrorResponse(message = e.message!!, statusCode = "400 Bad Request")
 }
