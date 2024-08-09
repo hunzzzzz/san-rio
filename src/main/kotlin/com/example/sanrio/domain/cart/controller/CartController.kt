@@ -1,6 +1,6 @@
 package com.example.sanrio.domain.cart.controller
 
-import com.example.sanrio.domain.cart.CartService
+import com.example.sanrio.domain.cart.service.CartService
 import org.springframework.context.annotation.Description
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
