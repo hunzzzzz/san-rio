@@ -1,5 +1,7 @@
 package com.example.sanrio.domain.user.service
 
+import com.example.sanrio.domain.cart.model.Cart
+import com.example.sanrio.domain.cart.repository.CartRepository
 import com.example.sanrio.domain.user.dto.request.AddressRequest
 import com.example.sanrio.domain.user.dto.request.LoginRequest
 import com.example.sanrio.domain.user.dto.request.SignUpRequest
@@ -21,6 +23,7 @@ import org.springframework.stereotype.Service
 class UserService(
     private val userRepository: UserRepository,
     private val addressRepository: AddressRepository,
+    private val cartRepository: CartRepository,
     private val encryptor: Encryptor,
     private val passwordEncoder: PasswordEncoder
 ) {
@@ -32,12 +35,16 @@ class UserService(
     private fun validateTwoPasswords(password1: String, password2: String) =
         if (password1 != password2) throw InvalidValueException("비밀번호") else Unit
 
+    @Description("회원가입 시 해당 회원 소유의 장바구니를 생성")
+    private fun makeCart(user: User) = Cart(user = user).let { cartRepository.save(it) }
+
     @Description("회원가입")
     fun signup(request: SignUpRequest) =
         validateEmailDuplication(email = request.email) // 이메일 검증
             .let { validateTwoPasswords(password1 = request.password, password2 = request.password2) } // 패스워드 검증
             .let { request.to(passwordEncoder = passwordEncoder) } // DTO -> 엔티티
             .let { userRepository.save(it) } // 저장
+            .let { makeCart(user = it) } // 장바구니 생성
             .let { } // 리턴값 X
 
     @Description("로그인 시 이메일 존재 여부 체크")
