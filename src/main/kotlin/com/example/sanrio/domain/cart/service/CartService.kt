@@ -1,6 +1,6 @@
-package com.example.sanrio.domain.cart
+package com.example.sanrio.domain.cart.service
 
-import com.example.sanrio.domain.cart.dto.response.CartItemResponse
+import com.example.sanrio.domain.cart.dto.response.CartResponse
 import com.example.sanrio.domain.cart.model.CartItem
 import com.example.sanrio.domain.cart.repository.CartItemRepository
 import com.example.sanrio.global.exception.case.DuplicatedValueException
@@ -25,30 +25,33 @@ class CartService(
     }
 
     @Description("장바구니에 상품 추가")
+    @Transactional
     fun addItems(userId: Long, productId: Long, count: Int) {
         val user = entityFinder.findUserById(userId = userId)
         val product = entityFinder.findProductById(productId = productId)
         val cart = entityFinder.findCartByUser(user = user)
 
-        checkItemCount(count = count, stock = product.stock)
+        checkItemCount(count = count, stock = product.stock) // count 유효성 체크
         check(
             !cartItemRepository.existsByCartAndProduct(
                 cart = cart,
                 product = product
             )
-        ) { throw DuplicatedValueException("상품") }
+        ) { throw DuplicatedValueException("상품") } // 장바구니에 해당 상품 존재 여부 확인
 
-        CartItem(count = count, totalPrice = product.price * count, product = product, cart = cart)
+        CartItem(count = count, unitPrice = product.price * count, product = product, cart = cart)
             .let { cartItemRepository.save(it) }
+
+        cart.updateTotalPrice(product.price * count)
     }
 
     @Description("장바구니에 상품 목록 조회")
     @Transactional
-    fun getItems(userId: Long): List<CartItemResponse> {
+    fun getItems(userId: Long): CartResponse {
         val user = entityFinder.findUserById(userId = userId)
         val cart = entityFinder.findCartByUser(user = user)
 
-        return cartItemRepository.getCartItems(cart = cart)
+        return CartResponse.from(cart = cart, cartItems = cartItemRepository.getCartItems(cart = cart))
     }
 
     @Description("장바구니에 상품 수량 수정")
@@ -61,7 +64,11 @@ class CartService(
         checkItemCount(count = count, stock = product.stock)
 
         entityFinder.findCartItemByCartAndProduct(cart = cart, product = product)
-            .let { it.updateCount(count = count) }
+            .let {
+                // totalCount 에서 기존값을 뺀 다음, 새로운 값을 더한다.
+                cart.updateTotalPrice(product.price * it.count * (-1) + product.price * count)
+                it.updateCount(count = count)
+            }
     }
 
     @Description("장바구니에 상품 삭제")

@@ -21,11 +21,11 @@ class CartItemRepositoryImpl(
                 cartItem.product.id,
                 cartItem.product.status,
                 cartItem.product.name,
-                cartItem.totalPrice,
+                cartItem.unitPrice,
                 cartItem.count
             )
         ).from(cartItem)
             .where(BooleanBuilder(cartItem.cart.eq(cart)))
-            .orderBy(cartItem.id.desc())
+            .orderBy(cartItem.updatedAt.desc())
             .fetch()
 }

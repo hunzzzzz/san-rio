@@ -6,6 +6,6 @@ data class CartItemResponse(
     val productId: Long,
     val productStatus: ProductStatus,
     val productName: String,
-    val productTotalPrice: Int,
+    val productUnitPrice: Int,
     val count: Int
 )
