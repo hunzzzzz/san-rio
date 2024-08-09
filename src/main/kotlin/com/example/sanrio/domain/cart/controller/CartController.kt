@@ -6,12 +6,12 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 
 @RestController
-@RequestMapping("/products/{productId}")
+@RequestMapping("/carts")
 class CartController(
     private val cartService: CartService
 ) {
     @Description("장바구니에 상품 추가")
-    @PostMapping
+    @PostMapping("/products/{productId}")
     fun addItems(
         @RequestParam userId: Long, // TODO : userID는 추후 UserPrincipal에서 추출한다.
         @RequestParam count: Int,
@@ -20,8 +20,16 @@ class CartController(
         cartService.addItems(userId = userId, productId = productId, count = count)
             .let { ResponseEntity.ok().body(it) }
 
+    @Description("장바구니 조회")
+    @GetMapping
+    fun getItems(
+        @RequestParam userId: Long, // TODO : userID는 추후 UserPrincipal에서 추출한다.
+    ) =
+        cartService.getItems(userId = userId)
+            .let { ResponseEntity.ok().body(it) }
+
     @Description("장바구니에 상품 수량 변경")
-    @PutMapping
+    @PutMapping("/products/{productId}")
     fun updateItem(
         @RequestParam userId: Long, // TODO : userID는 추후 UserPrincipal에서 추출한다.
         @RequestParam count: Int,

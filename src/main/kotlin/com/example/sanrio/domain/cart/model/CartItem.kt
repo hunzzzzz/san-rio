@@ -11,6 +11,9 @@ class CartItem(
     @Column(name = "count", nullable = false)
     var count: Int,
 
+    @Column(name = "total_price", nullable = false)
+    var totalPrice: Int,
+
     @ManyToOne
     @JoinColumn(name = "product_id", nullable = false)
     val product: Product,
@@ -25,5 +28,8 @@ class CartItem(
     var id: Long? = null
 
     @Description("수량 변경")
-    fun updateCount(count: Int) = count.also { this.count = it }
+    fun updateCount(count: Int) {
+        this.count = count
+        this.totalPrice = this.product.price * count
+    }
 }
