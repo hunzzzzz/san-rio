@@ -2,6 +2,7 @@ package com.example.sanrio.domain.cart
 
 import com.example.sanrio.domain.cart.model.CartItem
 import com.example.sanrio.domain.cart.repository.CartItemRepository
+import com.example.sanrio.global.exception.case.DuplicatedValueException
 import com.example.sanrio.global.exception.case.NegativeCountException
 import com.example.sanrio.global.exception.case.OutOfStockException
 import com.example.sanrio.global.exception.case.TooManyItemsException
@@ -29,6 +30,7 @@ class CartService(
         val cart = entityFinder.findCartByUser(user = user)
 
         checkItemCount(count = count, stock = product.stock)
+        check(cartItemRepository.existsByCartAndProduct(cart = cart, product = product)) { throw DuplicatedValueException("상품") }
 
         CartItem(count = count, product = product, cart = cart).let { cartItemRepository.save(it) }
     }

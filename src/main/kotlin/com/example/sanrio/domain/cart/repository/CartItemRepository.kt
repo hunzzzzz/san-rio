@@ -9,4 +9,6 @@ import org.springframework.stereotype.Repository
 @Repository
 interface CartItemRepository : JpaRepository<CartItem, Long> {
     fun findByCartAndProduct(cart: Cart, product: Product): CartItem?
+
+    fun existsByCartAndProduct(cart: Cart, product: Product): Boolean
 }
