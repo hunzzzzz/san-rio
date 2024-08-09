@@ -24,6 +24,8 @@ dependencies {
     // DB
     runtimeOnly("com.h2database:h2")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+    // MAIL
+    implementation("org.springframework.boot:spring-boot-starter-mail")
     // REDIS
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
     // QUERYDSL
