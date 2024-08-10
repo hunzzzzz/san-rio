@@ -15,10 +15,11 @@ data class AddressRequest(
     @field:NotBlank(message = "세부 주소를 입력해주세요.")
     val detailAddress: String?
 ) {
-    fun to(user: User, encryptor: Encryptor) = Address(
+    fun to(user: User, encryptor: Encryptor, isFirstAddress: Boolean = false) = Address(
         zipCode = this.zipCode!!,
         streetAddress = this.streetAddress!!,
         detailAddress = encryptor.encrypt(this.detailAddress!!),
-        user = user
+        user = user,
+        default = isFirstAddress
     )
 }

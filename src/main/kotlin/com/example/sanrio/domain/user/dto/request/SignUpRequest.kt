@@ -31,7 +31,6 @@ data class SignUpRequest(
         email = this.email,
         password = passwordEncoder.encode(this.password),
         name = this.name,
-        nickname = generateNickname(),
-        address = null
+        nickname = generateNickname()
     )
 }
