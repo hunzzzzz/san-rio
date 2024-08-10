@@ -3,6 +3,7 @@ package com.example.sanrio.domain.order.service
 import com.example.sanrio.domain.cart.repository.CartItemRepository
 import com.example.sanrio.domain.order.model.Order
 import com.example.sanrio.domain.order.model.OrderItem
+import com.example.sanrio.domain.order.model.OrderPeriod
 import com.example.sanrio.domain.order.repository.OrderItemRepository
 import com.example.sanrio.domain.order.repository.OrderRepository
 import com.example.sanrio.domain.product.model.ProductStatus.SOLD_OUT
@@ -12,6 +13,7 @@ import com.example.sanrio.global.utility.EntityFinder
 import com.example.sanrio.global.utility.OrderCodeGenerator.generateOrderCode
 import jakarta.transaction.Transactional
 import org.springframework.context.annotation.Description
+import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 
 @Service
@@ -47,7 +49,7 @@ class OrderService(
             entityFinder.findProductById(productId = cartItem.product.id!!)
                 .let { product -> product.decreaseStock(count = cartItem.count) }
 
-            OrderItem(count = cartItem.count, product = cartItem.product, order = order)
+            OrderItem(count = cartItem.count, unitPrice = cartItem.unitPrice, product = cartItem.product, order = order)
                 .let { orderItem -> orderItemRepository.save(orderItem) }
         }
 
