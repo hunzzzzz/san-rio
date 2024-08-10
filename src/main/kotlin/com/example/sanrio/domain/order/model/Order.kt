@@ -17,6 +17,12 @@ class Order(
     @Column(name = "total_price", nullable = false)
     val totalPrice: Int = 0,
 
+    @Column(name = "street_address", nullable = false)
+    val streetAddress: String,
+
+    @Column(name = "detail_address", nullable = false)
+    val detailAddress: ByteArray,
+
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
     val user: User
