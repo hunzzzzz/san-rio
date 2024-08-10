@@ -1,19 +1,22 @@
 package com.example.sanrio.domain.order.service
 
 import com.example.sanrio.domain.cart.repository.CartItemRepository
+import com.example.sanrio.domain.order.dto.response.OrderDataResponse
+import com.example.sanrio.domain.order.dto.response.OrderSliceResponse
 import com.example.sanrio.domain.order.model.Order
 import com.example.sanrio.domain.order.model.OrderItem
+import com.example.sanrio.domain.order.model.OrderPeriod
 import com.example.sanrio.domain.order.repository.OrderItemRepository
 import com.example.sanrio.domain.order.repository.OrderRepository
 import com.example.sanrio.domain.product.model.ProductStatus.SOLD_OUT
 import com.example.sanrio.domain.user.repository.AddressRepository
 import com.example.sanrio.global.exception.case.EmptyCartException
 import com.example.sanrio.global.exception.case.SoldOutItemsInCartException
-import com.example.sanrio.global.utility.Encryptor
 import com.example.sanrio.global.utility.EntityFinder
 import com.example.sanrio.global.utility.OrderCodeGenerator.generateOrderCode
 import jakarta.transaction.Transactional
 import org.springframework.context.annotation.Description
+import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 
 @Service
@@ -22,8 +25,7 @@ class OrderService(
     private val orderItemRepository: OrderItemRepository,
     private val cartItemRepository: CartItemRepository,
     private val addressRepository: AddressRepository,
-    private val entityFinder: EntityFinder,
-    private val encryptor: Encryptor
+    private val entityFinder: EntityFinder
 ) {
     @Description("장바구니에 있는 상품들에 대한 주문을 진행")
     @Transactional
@@ -65,5 +67,27 @@ class OrderService(
         // 장바구니 리셋
         cart.resetTotalPrice()
         cartItemRepository.deleteAllByCart(cart = cart)
+    }
+
+    @Description("주문 내역 조회")
+    fun getOrders(userId: Long, cursorId: Long?, period: OrderPeriod?): OrderSliceResponse {
+        val pageable = PageRequest.ofSize(ORDER_PAGE_SIZE)
+
+        val slice =
+            orderRepository.getOrders(pageable = pageable, userId = userId, cursorId = cursorId, period = period)
+        val list = mutableListOf<OrderDataResponse>()
+
+        slice.content.forEach { orderResponse ->
+            OrderDataResponse.from(
+                orderResponse = orderResponse,
+                orderItems = orderItemRepository.getOrderItems(orderId = orderResponse.orderId)
+            ).let { list.add(it) }
+        }
+
+        return OrderSliceResponse(size = slice.size, numberOfElements = slice.numberOfElements, contents = list)
+    }
+
+    companion object {
+        private const val ORDER_PAGE_SIZE = 5
     }
 }
