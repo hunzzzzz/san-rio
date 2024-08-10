@@ -20,8 +20,13 @@ class Cart(
     @Column(name = "cart_id", nullable = false)
     var id: Long? = null
 
-    @Description("전체 수량(totalPrice) 업데이트")
+    @Description("전체 가격(totalPrice) 업데이트")
     fun updateTotalPrice(unitPrice: Int) {
         this.totalPrice += unitPrice
+    }
+
+    @Description("장바구니 상품 주문 완료 시, 다시 전체 가격을 0으로 리셋")
+    fun resetTotalPrice() {
+        this.totalPrice = 0
     }
 }
