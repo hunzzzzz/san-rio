@@ -9,6 +9,9 @@ class OrderItem(
     @Column(name = "count", nullable = false)
     val count: Int,
 
+    @Column(name = "unit_price", nullable = false)
+    val unitPrice: Int,
+
     @ManyToOne
     @JoinColumn(name = "product_id", nullable = false)
     val product: Product,
