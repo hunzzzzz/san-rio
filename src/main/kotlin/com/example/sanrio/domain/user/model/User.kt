@@ -24,15 +24,10 @@ class User(
     val name: String,
 
     @Column(name = "nickname", nullable = false)
-    val nickname: String,
-
-    @OneToOne(mappedBy = "user")
-    val address: Address? = null
+    val nickname: String
 ) : BaseEntity() {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_id", nullable = false, unique = true)
     val id: Long? = null
-
-
 }

@@ -19,8 +19,11 @@ class Address(
     @Column(name = "detail_address", nullable = false)
     var detailAddress: ByteArray,
 
-    @OneToOne
-    @JoinColumn(name = "user_id", nullable = false, unique = true)
+    @Column(name = "is_selected", nullable = false)
+    var default: Boolean,
+
+    @ManyToOne
+    @JoinColumn(name = "user_id", nullable = false)
     val user: User
 ) : BaseEntity() {
     @Id

@@ -2,20 +2,15 @@ package com.example.sanrio.domain.user.service
 
 import com.example.sanrio.domain.cart.model.Cart
 import com.example.sanrio.domain.cart.repository.CartRepository
-import com.example.sanrio.domain.user.dto.request.AddressRequest
 import com.example.sanrio.domain.user.dto.request.LoginRequest
 import com.example.sanrio.domain.user.dto.request.SignUpRequest
 import com.example.sanrio.domain.user.model.User
-import com.example.sanrio.domain.user.repository.AddressRepository
 import com.example.sanrio.domain.user.repository.UserRepository
 import com.example.sanrio.global.exception.case.DuplicatedValueException
 import com.example.sanrio.global.exception.case.InvalidValueException
 import com.example.sanrio.global.exception.case.LoginException
 import com.example.sanrio.global.exception.case.VerificationException
-import com.example.sanrio.global.utility.Encryptor
-import com.example.sanrio.global.utility.EntityFinder
 import com.example.sanrio.global.utility.MailSender
-import jakarta.transaction.Transactional
 import org.springframework.context.annotation.Description
 import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.mail.MailSendException
@@ -26,11 +21,8 @@ import java.util.concurrent.TimeUnit
 @Service
 class UserService(
     private val userRepository: UserRepository,
-    private val addressRepository: AddressRepository,
     private val cartRepository: CartRepository,
-    private val encryptor: Encryptor,
     private val passwordEncoder: PasswordEncoder,
-    private val entityFinder: EntityFinder,
     private val mailSender: MailSender,
     private val redisTemplate: RedisTemplate<String, String>,
 ) {
@@ -91,24 +83,4 @@ class UserService(
             password = request.password
         ) // 패스워드 검증
             .let { } // TODO : 추후 토큰을 리턴할 예정
-
-    @Description("주소 설정 시 우편 번호 형식 체크")
-    private fun validateZipCode(zipCode: String) =
-        if (zipCode.toIntOrNull() == null || zipCode.length != 5) throw InvalidValueException("우편번호") else Unit
-
-    @Description("주소 설정")
-    @Transactional
-    fun setAddress(userId: Long, request: AddressRequest) =
-        validateZipCode(zipCode = request.zipCode!!)
-            .let { entityFinder.findUserById(userId = userId) }
-            .let {
-                // 이미 입력한 주소가 존재하는 경우
-                if (addressRepository.existsByUser(user = it))
-                    addressRepository.findByUser(user = it)
-                        .update(request = request, encryptor = encryptor)
-                // 새로 주소를 등록하는 경우
-                else request.to(user = it, encryptor = encryptor)
-                    .let { address -> addressRepository.save(address) }
-            }
-            .let { } // 리턴값 X
 }
