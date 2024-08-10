@@ -10,5 +10,9 @@ import org.springframework.stereotype.Repository
 interface CartItemRepository : JpaRepository<CartItem, Long>, CartItemRepositoryCustom {
     fun findByCartAndProduct(cart: Cart, product: Product): CartItem?
 
+    fun findAllByCart(cart: Cart): List<CartItem>
+
+    fun deleteAllByCart(cart: Cart)
+
     fun existsByCartAndProduct(cart: Cart, product: Product): Boolean
 }
