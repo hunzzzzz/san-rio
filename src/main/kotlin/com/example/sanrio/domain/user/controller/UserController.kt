@@ -9,19 +9,20 @@ import jakarta.validation.Valid
 import org.springframework.context.annotation.Description
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
+import java.net.URI
 
 @RestController
 class UserController(
     private val userService: UserService,
     private val addressService: AddressService
 ) {
-    @Description("일반 유저 회원가입")
+    @Description("회원가입")
     @PostMapping("/signup")
     fun signup(
         @RequestParam isIdentified: Boolean,
         @Valid @RequestBody request: SignUpRequest
     ) = userService.signup(isIdentified = isIdentified, request = request)
-        .let { ResponseEntity.ok().body(it) }
+        .let { ResponseEntity.created(URI.create("/login")).body(it) }
 
     @Description("인증번호 메일 전송")
     @GetMapping("/signup/code")

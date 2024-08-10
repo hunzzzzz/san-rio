@@ -6,9 +6,8 @@ import com.example.sanrio.domain.user.dto.request.LoginRequest
 import com.example.sanrio.domain.user.dto.request.SignUpRequest
 import com.example.sanrio.domain.user.model.User
 import com.example.sanrio.domain.user.repository.UserRepository
-import com.example.sanrio.global.exception.case.DuplicatedValueException
-import com.example.sanrio.global.exception.case.InvalidValueException
 import com.example.sanrio.global.exception.case.LoginException
+import com.example.sanrio.global.exception.case.SignUpException
 import com.example.sanrio.global.exception.case.VerificationException
 import com.example.sanrio.global.utility.MailSender
 import org.springframework.context.annotation.Description
@@ -26,6 +25,18 @@ class UserService(
     private val mailSender: MailSender,
     private val redisTemplate: RedisTemplate<String, String>,
 ) {
+    @Description("회원가입 시 본인 인증 완료 여부 확인")
+    private fun checkVerification(isIdentified: Boolean) =
+        check(isIdentified) { throw SignUpException("본인인증이 완료되지 않았습니다.") }
+
+    @Description("회원가입 시 이메일 중복 여부 확인")
+    private fun checkEmailDuplication(email: String) =
+        check(!userRepository.existsByEmail(email = email)) { throw SignUpException("이미 사용 중인 이메일입니다.") }
+
+    @Description("회원가입 시 입력한 두 개의 비밀번호의 일치 여부 확인")
+    private fun checkTwoPasswords(first: String, second: String) =
+        check(first == second) { throw SignUpException("두 비밀번호가 일치하지 않습니다.") }
+
     @Description("회원가입 시 해당 회원 소유의 장바구니를 생성")
     private fun makeCart(user: User) = Cart(user = user).let { cartRepository.save(it) }
 
@@ -40,9 +51,9 @@ class UserService(
 
     @Description("회원가입")
     fun signup(isIdentified: Boolean, request: SignUpRequest) {
-        check(isIdentified) { throw VerificationException("본인인증이 완료되지 않았습니다.") }
-        check(!userRepository.existsByEmail(email = request.email)) { throw DuplicatedValueException("이메일") }
-        check(request.password == request.password2) { throw InvalidValueException("비밀번호") }
+        checkVerification(isIdentified = isIdentified)
+        checkEmailDuplication(email = request.email)
+        checkTwoPasswords(first = request.password, second = request.password2)
 
         request.to(passwordEncoder = passwordEncoder) // DTO -> 엔티티
             .let { userRepository.save(it) } // 저장
