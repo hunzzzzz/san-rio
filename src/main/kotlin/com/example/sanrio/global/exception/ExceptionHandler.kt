@@ -63,4 +63,10 @@ class ExceptionHandler {
     @ExceptionHandler(VerificationException::class)
     fun handleVerificationException(e: VerificationException) =
         ErrorResponse(message = e.message!!, statusCode = "400 Bad Request")
+
+    // JWT 토큰 관련 에러
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(JwtTokenException::class)
+    fun handleJwtTokenException(e: JwtTokenException) =
+        ErrorResponse(message = e.message!!, statusCode = "400 Bad Request")
 }
