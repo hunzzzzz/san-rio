@@ -156,7 +156,7 @@ class UserControllerTest {
             email = "test@gmail.com",
             password = "Test1234!",
             password2 = "Test1234!",
-            name = ""
+            name = "테스트 계정"
         ).to(passwordEncoder = passwordEncoder)
         userRepository.save(user)
 

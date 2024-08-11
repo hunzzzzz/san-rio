@@ -39,12 +39,6 @@ class UserController(
     ) = userService.checkVerificationCode(email = email, code = code)
         .let { ResponseEntity.ok().body(it) }
 
-    @Description("로그인")
-    @PostMapping("/login")
-    fun login(
-        @Valid @RequestBody request: LoginRequest
-    ) = ResponseEntity.ok().body(userService.login(request = request))
-
     @Description("주소 설정")
     @PostMapping("/users/{userId}/address")
     fun setAddress(

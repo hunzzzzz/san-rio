@@ -30,4 +30,7 @@ class EntityFinder(
 
     fun findUserById(userId: Long) =
         userRepository.findByIdOrNull(userId) ?: throw ModelNotFoundException("유저")
+
+    fun findUserByEmail(email: String) =
+        userRepository.findByEmail(email = email) ?: throw ModelNotFoundException("유저")
 }

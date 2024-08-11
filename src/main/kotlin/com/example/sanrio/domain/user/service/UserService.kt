@@ -78,20 +78,4 @@ class UserService(
         check(redisTemplate.opsForValue().get(email) != null) { throw VerificationException("인증번호가 만료되었습니다.") }
         check(redisTemplate.opsForValue().get(email) == code) { throw VerificationException("인증번호가 일치하지 않습니다.") }
     }
-
-    @Description("로그인 시 이메일 존재 여부 체크")
-    private fun findUserByEmail(email: String) =
-        userRepository.findByEmail(email = email) ?: throw LoginException()
-
-    @Description("로그인 시 패스워드 일치 여부 체크")
-    private fun validatePassword(user: User, password: String) =
-        if (!passwordEncoder.matches(password, user.password)) throw LoginException() else Unit
-
-    @Description("로그인")
-    fun login(request: LoginRequest) =
-        validatePassword(
-            user = findUserByEmail(email = request.email),
-            password = request.password
-        ) // 패스워드 검증
-            .let { } // TODO : 추후 토큰을 리턴할 예정
 }
