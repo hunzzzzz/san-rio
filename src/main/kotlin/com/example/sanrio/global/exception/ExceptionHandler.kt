@@ -16,12 +16,6 @@ class ExceptionHandler {
     fun handleMethodArgumentNotValidException(e: MethodArgumentNotValidException) =
         ErrorResponse(message = e.fieldErrors.first().defaultMessage!!, statusCode = "400 Bad Request")
 
-    // 회원가입 관련 예외 처리
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    @ExceptionHandler(SignUpException::class)
-    fun handleSignUpException(e: SignUpException) =
-        ErrorResponse(message = e.message!!, statusCode = "400 Bad Request")
-
     // 두 value가 일치하지 않는 경우
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(InvalidValueException::class)
@@ -38,6 +32,18 @@ class ExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(ModelNotFoundException::class)
     fun handleModelNotFoundException(e: ModelNotFoundException) =
+        ErrorResponse(message = e.message!!, statusCode = "400 Bad Request")
+
+    // 회원가입 관련 예외 처리
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(SignUpException::class)
+    fun handleSignUpException(e: SignUpException) =
+        ErrorResponse(message = e.message!!, statusCode = "400 Bad Request")
+
+    // 주소 관련 예외 처리
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(AddressException::class)
+    fun handleAddressException(e: AddressException) =
         ErrorResponse(message = e.message!!, statusCode = "400 Bad Request")
 
     // 권한이 없는 요청을 한 경우
