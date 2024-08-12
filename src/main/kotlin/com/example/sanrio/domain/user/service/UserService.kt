@@ -3,10 +3,14 @@ package com.example.sanrio.domain.user.service
 import com.example.sanrio.domain.cart.model.Cart
 import com.example.sanrio.domain.cart.repository.CartRepository
 import com.example.sanrio.domain.user.dto.request.SignUpRequest
+import com.example.sanrio.domain.user.dto.response.UserResponse
 import com.example.sanrio.domain.user.model.User
 import com.example.sanrio.domain.user.repository.UserRepository
+import com.example.sanrio.global.exception.case.ForbiddenException
 import com.example.sanrio.global.exception.case.SignUpException
 import com.example.sanrio.global.exception.case.VerificationException
+import com.example.sanrio.global.jwt.UserPrincipal
+import com.example.sanrio.global.utility.EntityFinder
 import com.example.sanrio.global.utility.MailSender
 import org.springframework.context.annotation.Description
 import org.springframework.data.redis.core.RedisTemplate
@@ -22,6 +26,7 @@ class UserService(
     private val passwordEncoder: PasswordEncoder,
     private val mailSender: MailSender,
     private val redisTemplate: RedisTemplate<String, String>,
+    private val entityFinder: EntityFinder,
 ) {
     @Description("회원가입 시 본인 인증 완료 여부 확인")
     private fun checkVerification(isIdentified: Boolean) =
@@ -75,5 +80,17 @@ class UserService(
     fun checkVerificationCode(email: String, code: String) {
         check(redisTemplate.opsForValue().get(email) != null) { throw VerificationException("인증번호가 만료되었습니다.") }
         check(redisTemplate.opsForValue().get(email) == code) { throw VerificationException("인증번호가 일치하지 않습니다.") }
+    }
+
+    @Description("본인 프로필이 맞는지 체크")
+    private fun checkUser(userPrincipal: UserPrincipal, userId: Long) =
+        check(userPrincipal.id == userId) { throw ForbiddenException() }
+
+    @Description("프로필 조회")
+    fun getUserProfile(userPrincipal: UserPrincipal, userId: Long): UserResponse {
+        checkUser(userPrincipal = userPrincipal, userId = userId)
+
+        val user = entityFinder.findUserById(userId = userId)
+        return UserResponse.from(user = user)
     }
 }

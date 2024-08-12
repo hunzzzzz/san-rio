@@ -4,6 +4,9 @@ import com.example.sanrio.domain.cart.repository.CartRepository
 import com.example.sanrio.domain.user.dto.request.SignUpRequest
 import com.example.sanrio.domain.user.model.User
 import com.example.sanrio.domain.user.repository.UserRepository
+import com.example.sanrio.global.auth.AuthenticationHelper
+import com.example.sanrio.global.auth.WithCustomMockUser
+import com.example.sanrio.global.utility.EntityFinder
 import com.example.sanrio.global.utility.NicknameGenerator.generateNickname
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.junit.jupiter.api.AfterEach
@@ -14,6 +17,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.MediaType.APPLICATION_JSON
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers.print
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
@@ -29,13 +33,19 @@ class UserControllerTest {
     lateinit var objectMapper: ObjectMapper
 
     @Autowired
+    lateinit var passwordEncoder: PasswordEncoder
+
+    @Autowired
+    lateinit var entityFinder: EntityFinder
+
+    @Autowired
+    lateinit var authenticationHelper: AuthenticationHelper
+
+    @Autowired
     lateinit var userRepository: UserRepository
 
     @Autowired
     lateinit var cartRepository: CartRepository
-
-    @Autowired
-    lateinit var passwordEncoder: PasswordEncoder
 
     @AfterEach
     fun clean() {
@@ -133,6 +143,7 @@ class UserControllerTest {
             .andDo(print())
     }
 
+    @Test
     fun 회원가입시_휴대폰번호_형식을_잘못_입력한_경우() {
         // given
         val request = SignUpRequest(
@@ -227,8 +238,45 @@ class UserControllerTest {
             .andDo(print())
     }
 
+    @Test
+    @WithCustomMockUser
+    fun 정상적으로_프로필_조회에_성공한_경우() {
+        // given
+        val user = entityFinder.findUserById(authenticationHelper.getCurrentUser().id)
+
+        // expected
+        mockMvc.perform(
+            get("/users/${user.id}")
+                .contentType(APPLICATION_JSON)
+        ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.userId").value(user.id))
+            .andExpect(jsonPath("$.email").value(user.email))
+            .andExpect(jsonPath("$.name").value(user.name))
+            .andExpect(jsonPath("$.nickname").value(user.nickname))
+            .andExpect(jsonPath("$.phone").value(user.phone))
+            .andExpect(jsonPath("$.point").value(user.point))
+            .andDo(print())
+    }
+
+    @Test
+    @WithCustomMockUser
+    fun 다른_회원의_프로필을_조회하려는_경우() {
+        // given
+        val user = entityFinder.findUserById(authenticationHelper.getCurrentUser().id)
+        val anotherUser = getUser()
+
+        // expected
+        mockMvc.perform(
+            get("/users/${anotherUser.id}")
+                .contentType(APPLICATION_JSON)
+        ).andExpect(status().isForbidden)
+            .andExpect(jsonPath("$.message").value("권한이 없습니다."))
+            .andExpect(jsonPath("$.statusCode").value("403 Forbidden"))
+            .andDo(print())
+    }
+
     private fun getUser() = User(
-        email = "test@gmail.com",
+        email = "test2@gmail.com",
         password = passwordEncoder.encode("Test1234!"),
         name = "테스트 계정",
         nickname = generateNickname(),
