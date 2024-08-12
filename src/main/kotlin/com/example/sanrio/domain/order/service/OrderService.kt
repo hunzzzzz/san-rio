@@ -130,6 +130,19 @@ class OrderService(
         order.updateStatus(status = OrderStatus.REQUESTED_FOR_CANCEL)
     }
 
+    @Description("주문 취소 신청 승인")
+    @Transactional
+    fun acceptCancelOrder(userId: Long, orderId: Long) {
+        val order = entityFinder.findOrderById(orderId = orderId)
+
+        // 재고 수량 복구
+        orderItemRepository.findByOrder(order = order)
+            .forEach { orderItem -> orderItem.product.increaseStock(count = orderItem.count) }
+
+        // 취소 완료
+        order.updateStatus(status = OrderStatus.CANCELLED)
+    }
+
     companion object {
         private const val ORDER_PAGE_SIZE = 5
     }

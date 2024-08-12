@@ -37,4 +37,10 @@ class Product(
         this.stock -= count
         if (this.stock == 0) this.status = ProductStatus.SOLD_OUT
     }
+
+    @Description("재고 수량 증가")
+    fun increaseStock(count: Int) {
+        this.stock += count
+        if (this.status == ProductStatus.SOLD_OUT && this.stock > 0) this.status = ProductStatus.SALE
+    }
 }
