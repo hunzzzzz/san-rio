@@ -7,5 +7,5 @@ import org.springframework.stereotype.Repository
 
 @Repository
 interface CartRepository : JpaRepository<Cart, Long> {
-    fun findByUser(user: User): Cart
+    fun findByUser(user: User): Cart?
 }
