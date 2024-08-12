@@ -5,6 +5,7 @@ import com.example.sanrio.domain.cart.model.CartItem
 import com.example.sanrio.domain.cart.repository.CartItemRepository
 import com.example.sanrio.domain.cart.repository.CartRepository
 import com.example.sanrio.domain.order.model.Order
+import com.example.sanrio.domain.order.model.OrderItem
 import com.example.sanrio.domain.order.model.OrderStatus
 import com.example.sanrio.domain.order.repository.OrderItemRepository
 import com.example.sanrio.domain.order.repository.OrderRepository
@@ -33,8 +34,7 @@ import org.springframework.data.domain.Sort
 import org.springframework.data.domain.Sort.Direction.DESC
 import org.springframework.http.MediaType.APPLICATION_JSON
 import org.springframework.test.web.servlet.MockMvc
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers.print
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
@@ -269,6 +269,7 @@ class OrderControllerTest {
     @Test
     @WithCustomMockUser
     fun 본인이_아닌_주문에_대한_취소_신청한_경우() {
+        // given
         val user1 = entityFinder.findUserById(authenticationHelper.getCurrentUser().id)
         val user2 = setUser()
         val order = setOrder(user = user2)
@@ -286,6 +287,7 @@ class OrderControllerTest {
     @Test
     @WithCustomMockUser
     fun 배송중인_주문에_대한_취소_신청한_경우() {
+        // given
         val user = entityFinder.findUserById(authenticationHelper.getCurrentUser().id)
         val order = setOrder(user = user, status = OrderStatus.SHIPPING)
 
@@ -302,6 +304,7 @@ class OrderControllerTest {
     @Test
     @WithCustomMockUser
     fun 배송완료된_주문에_대한_취소_신청한_경우() {
+        // given
         val user = entityFinder.findUserById(authenticationHelper.getCurrentUser().id)
         val order = setOrder(user = user, status = OrderStatus.DELIVERED)
 
@@ -313,6 +316,30 @@ class OrderControllerTest {
             .andExpect(jsonPath("$.message").value("잘못된 요청입니다. 취소가 불가능한 주문입니다."))
             .andExpect(jsonPath("$.statusCode").value("400 Bad Request"))
             .andDo(print())
+    }
+
+    @Test
+    @WithCustomMockUser
+    fun 정상적으로_관리자가_주문_취소_신청을_승인한_경우() {
+        // given
+        val admin = entityFinder.findUserById(authenticationHelper.getCurrentUser().id)
+        val user = setUser()
+        val order = setOrder(user = user, status = OrderStatus.REQUESTED_FOR_CANCEL)
+        val quantity = 1
+
+        setProducts()
+        setOrderItems(order = order, quantity = quantity)
+
+        // expected
+        mockMvc.perform(
+            put("/orders/cancel/${order.id}")
+                .contentType(APPLICATION_JSON)
+        ).andExpect(status().isOk)
+            .andDo(print())
+
+        assertThat(entityFinder.findOrderById(orderId = order.id!!).status).isEqualTo(OrderStatus.CANCELLED)
+        assertThat(productRepository.findAll().map { it.stock }
+            .count { it == AMOUNT_OF_PRODUCTS + quantity }).isEqualTo(productRepository.count())
     }
 
     private fun setUser() = User(
@@ -360,7 +387,7 @@ class OrderControllerTest {
             .let { cartItem -> cartItemRepository.save(cartItem) }
     }
 
-    fun setOrder(user: User, status: OrderStatus = OrderStatus.PAID) =
+    private fun setOrder(user: User, status: OrderStatus = OrderStatus.PAID) =
         Order(
             code = OrderCodeGenerator.generateOrderCode(CharacterName.entries.toTypedArray().random()),
             status = status,
@@ -370,7 +397,16 @@ class OrderControllerTest {
             user = user
         ).let { orderRepository.save(it) }
 
-    fun setOrders(user: User, status: OrderStatus? = null) =
+    private fun setOrderItems(order: Order, quantity: Int) = productRepository.findAll().forEach { product ->
+        OrderItem(
+            count = quantity,
+            unitPrice = product.price * quantity,
+            product = product,
+            order = order
+        ).let { orderItemRepository.save(it) }
+    }
+
+    private fun setOrders(user: User, status: OrderStatus? = null) =
         (1..AMOUNT_OF_ORDER).forEach { _ ->
             Order(
                 code = OrderCodeGenerator.generateOrderCode(CharacterName.entries.toTypedArray().random()),
