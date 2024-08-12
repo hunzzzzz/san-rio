@@ -1,5 +1,7 @@
 package com.example.sanrio.domain.order.service
 
+import com.example.sanrio.domain.cart.model.Cart
+import com.example.sanrio.domain.cart.model.CartItem
 import com.example.sanrio.domain.cart.repository.CartItemRepository
 import com.example.sanrio.domain.order.dto.response.OrderDataResponse
 import com.example.sanrio.domain.order.dto.response.OrderSliceResponse
@@ -9,7 +11,9 @@ import com.example.sanrio.domain.order.model.OrderPeriod
 import com.example.sanrio.domain.order.repository.OrderItemRepository
 import com.example.sanrio.domain.order.repository.OrderRepository
 import com.example.sanrio.domain.product.model.ProductStatus.SOLD_OUT
+import com.example.sanrio.domain.user.model.User
 import com.example.sanrio.domain.user.repository.AddressRepository
+import com.example.sanrio.global.exception.case.EmptyAddressException
 import com.example.sanrio.global.exception.case.EmptyCartException
 import com.example.sanrio.global.exception.case.SoldOutItemsInCartException
 import com.example.sanrio.global.utility.EntityFinder
@@ -27,6 +31,24 @@ class OrderService(
     private val addressRepository: AddressRepository,
     private val entityFinder: EntityFinder
 ) {
+    @Description("품절 상품 여부 확인")
+    private fun checkSoldOut(cartItems: List<CartItem>) =
+        check(cartItems.map { it.product.status }.count { it == SOLD_OUT } == 0) { throw SoldOutItemsInCartException() }
+
+    @Description("장바구니가 비어있는지 확인")
+    private fun checkCartEmpty(cartItems: List<CartItem>) =
+        check(cartItems.isNotEmpty()) { throw EmptyCartException() }
+
+    @Description("유저의 배송지 정보가 설정되어 있는지 확인")
+    private fun checkAddress(user: User) =
+        check(addressRepository.existsByUser(user = user)) { throw EmptyAddressException() }
+
+    @Description("주문 후 장바구니를 리셋")
+    private fun resetCart(cart: Cart) {
+        cart.resetTotalPrice()
+        cartItemRepository.deleteAllByCart(cart = cart)
+    }
+
     @Description("장바구니에 있는 상품들에 대한 주문을 진행")
     @Transactional
     fun makeOrder(userId: Long) {
@@ -34,15 +56,11 @@ class OrderService(
         val cart = entityFinder.findCartByUser(user = user)
         val cartItems = cartItemRepository.findAllByCart(cart = cart)
 
-        // 품절 상품 여부 확인
-        check(cartItems.map { it.product.status }.count { it == SOLD_OUT } == 0) { throw SoldOutItemsInCartException() }
+        checkSoldOut(cartItems = cartItems)
+        checkCartEmpty(cartItems = cartItems)
+        checkAddress(user = user)
 
-        // 장바구니가 비어있는지 확인
-        check(cartItems.isNotEmpty()) { throw EmptyCartException() }
-
-        // 유저의 배송지 정보가 설정되어 있는지 확인
-        check(addressRepository.existsByUser(user = user)) { throw EmptyCartException() }
-
+        // 배송하고자 하는 유저의 기본 설정 주소
         val address = addressRepository.findByUserAndDefault(user = user, default = true)
 
         // Order 객체 저장
@@ -60,23 +78,24 @@ class OrderService(
             entityFinder.findProductById(productId = cartItem.product.id!!)
                 .let { product -> product.decreaseStock(count = cartItem.count) }
 
+            // 저장
             OrderItem(count = cartItem.count, unitPrice = cartItem.unitPrice, product = cartItem.product, order = order)
                 .let { orderItem -> orderItemRepository.save(orderItem) }
         }
 
         // 장바구니 리셋
-        cart.resetTotalPrice()
-        cartItemRepository.deleteAllByCart(cart = cart)
+        resetCart(cart = cart)
     }
 
     @Description("주문 내역 조회")
     fun getOrders(userId: Long, cursorId: Long?, period: OrderPeriod?): OrderSliceResponse {
         val pageable = PageRequest.ofSize(ORDER_PAGE_SIZE)
 
-        val slice =
-            orderRepository.getOrders(pageable = pageable, userId = userId, cursorId = cursorId, period = period)
-        val list = mutableListOf<OrderDataResponse>()
+        // 주문 내역 조회
+        val slice = orderRepository.getOrders(pageable = pageable, userId = userId, cursorId = cursorId, period = period)
 
+        // 주문 내역 하위의 상품 목록 조회
+        val list = mutableListOf<OrderDataResponse>()
         slice.content.forEach { orderResponse ->
             OrderDataResponse.from(
                 orderResponse = orderResponse,
