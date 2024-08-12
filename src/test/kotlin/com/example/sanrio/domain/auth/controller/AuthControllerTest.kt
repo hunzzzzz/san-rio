@@ -2,8 +2,9 @@ package com.example.sanrio.domain.auth.controller
 
 import com.example.sanrio.domain.cart.repository.CartRepository
 import com.example.sanrio.domain.user.dto.request.LoginRequest
-import com.example.sanrio.domain.user.dto.request.SignUpRequest
+import com.example.sanrio.domain.user.model.User
 import com.example.sanrio.domain.user.repository.UserRepository
+import com.example.sanrio.global.utility.NicknameGenerator.generateNickname
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
@@ -75,13 +76,13 @@ class AuthControllerTest {
         assertThat(URLDecoder.decode(cookieRtk!!.value, "UTF-8")).startsWith(BEARER_PREFIX)
     }
 
-    private fun getUser() = SignUpRequest(
+    private fun getUser() = User(
         email = "test@gmail.com",
-        password = "Test1234!",
-        password2 = "Test1234!",
-        name = "테스트 계정"
-    ).to(passwordEncoder = passwordEncoder)
-        .let { userRepository.save(it) }
+        password = passwordEncoder.encode("Test1234!"),
+        name = "테스트 계정",
+        nickname = generateNickname(),
+        phone = "010-1234-5678"
+    ).let { userRepository.save(it) }
 
     @Test
     fun 존재하지_않는_이메일로_로그인을_시도한_경우() {

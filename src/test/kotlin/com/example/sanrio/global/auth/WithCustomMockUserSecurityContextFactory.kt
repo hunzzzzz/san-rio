@@ -23,7 +23,8 @@ class WithAccountSecurityContextFactory(
             email = "test@gmail.com",
             password = "Test1234!",
             name = "테스트 계정",
-            nickname = generateNickname()
+            nickname = generateNickname(),
+            phone = "010-1234-5678"
         ).let { userRepository.save(it) }
 
         val principal = UserPrincipal(

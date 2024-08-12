@@ -1,5 +1,7 @@
 package com.example.sanrio.domain.order.controller
 
+import com.example.sanrio.domain.address.model.Address
+import com.example.sanrio.domain.address.repository.AddressRepository
 import com.example.sanrio.domain.cart.model.Cart
 import com.example.sanrio.domain.cart.model.CartItem
 import com.example.sanrio.domain.cart.repository.CartItemRepository
@@ -13,10 +15,8 @@ import com.example.sanrio.domain.product.model.CharacterName
 import com.example.sanrio.domain.product.model.Product
 import com.example.sanrio.domain.product.model.ProductStatus
 import com.example.sanrio.domain.product.repository.ProductRepository
-import com.example.sanrio.domain.address.model.Address
 import com.example.sanrio.domain.user.model.User
 import com.example.sanrio.domain.user.model.UserRole
-import com.example.sanrio.domain.address.repository.AddressRepository
 import com.example.sanrio.domain.user.repository.UserRepository
 import com.example.sanrio.global.auth.AuthenticationHelper
 import com.example.sanrio.global.auth.WithCustomMockUser
@@ -347,7 +347,8 @@ class OrderControllerTest {
         email = "test2@gmail.com",
         password = "Test1234!",
         name = "테스트 계정2",
-        nickname = generateNickname()
+        nickname = generateNickname(),
+        phone = "010-1234-5678"
     ).let { userRepository.save(it) }
 
     private fun setAddress(user: User) = Address(
