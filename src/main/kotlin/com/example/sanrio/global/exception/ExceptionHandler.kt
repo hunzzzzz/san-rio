@@ -46,10 +46,16 @@ class ExceptionHandler {
     fun handleLoginException(e: LoginException) =
         ErrorResponse(message = e.message!!, statusCode = "400 Bad Request")
 
-    // 상품 주문 관련 에러
+    // 장바구니 상품 관련 에러
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(ItemException::class)
     fun handleOutOfStockException(e: ItemException) =
+        ErrorResponse(message = e.message!!, statusCode = "400 Bad Request")
+
+    // 주문 관련 에러
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(OrderException::class)
+    fun handleOutOfStockException(e: OrderException) =
         ErrorResponse(message = e.message!!, statusCode = "400 Bad Request")
 
     // 메일 전송 관련 에러

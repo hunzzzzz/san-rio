@@ -1,30 +1,30 @@
 package com.example.sanrio.global.auth
 
-import com.example.sanrio.domain.user.dto.request.SignUpRequest
+import com.example.sanrio.domain.user.model.User
+import com.example.sanrio.domain.user.model.UserRole
 import com.example.sanrio.domain.user.repository.UserRepository
 import com.example.sanrio.global.jwt.JwtAuthenticationToken
 import com.example.sanrio.global.jwt.UserPrincipal
+import com.example.sanrio.global.utility.NicknameGenerator.generateNickname
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.security.core.context.SecurityContext
 import org.springframework.security.core.context.SecurityContextHolder
-import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.security.test.context.support.WithSecurityContextFactory
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource
 
 class WithAccountSecurityContextFactory(
     private val userRepository: UserRepository,
-    private val passwordEncoder: PasswordEncoder,
     private val httpServletRequest: HttpServletRequest
 ) : WithSecurityContextFactory<WithCustomMockUser> {
 
     override fun createSecurityContext(annotation: WithCustomMockUser): SecurityContext {
-        val user = SignUpRequest(
+        val user = User(
+            role = UserRole.ADMIN,
             email = "test@gmail.com",
             password = "Test1234!",
-            password2 = "Test1234!",
-            name = "테스트 계정"
-        ).to(passwordEncoder = passwordEncoder)
-            .let { userRepository.save(it) }
+            name = "테스트 계정",
+            nickname = generateNickname()
+        ).let { userRepository.save(it) }
 
         val principal = UserPrincipal(
             id = user.id!!,
