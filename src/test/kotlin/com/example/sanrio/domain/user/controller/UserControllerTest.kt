@@ -2,7 +2,9 @@ package com.example.sanrio.domain.user.controller
 
 import com.example.sanrio.domain.cart.repository.CartRepository
 import com.example.sanrio.domain.user.dto.request.SignUpRequest
+import com.example.sanrio.domain.user.model.User
 import com.example.sanrio.domain.user.repository.UserRepository
+import com.example.sanrio.global.utility.NicknameGenerator.generateNickname
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
@@ -48,7 +50,8 @@ class UserControllerTest {
             email = "test@gmail.com",
             password = "Test1234!",
             password2 = "Test1234!",
-            name = "테스트 계정"
+            name = "테스트 계정",
+            phone = "010-1234-5678"
         )
         val json = objectMapper.writeValueAsString(request)
 
@@ -68,7 +71,8 @@ class UserControllerTest {
             email = "test",
             password = "Test1234!",
             password2 = "Test1234!",
-            name = "테스트 계정"
+            name = "테스트 계정",
+            phone = "010-1234-5678"
         )
         val json = objectMapper.writeValueAsString(request)
 
@@ -90,7 +94,8 @@ class UserControllerTest {
             email = "test@gmail.com",
             password = "Test1234",
             password2 = "Test1234",
-            name = "테스트 계정"
+            name = "테스트 계정",
+            phone = "010-1234-5678"
         )
         val json = objectMapper.writeValueAsString(request)
 
@@ -112,7 +117,8 @@ class UserControllerTest {
             email = "test@gmail.com",
             password = "Test1234!",
             password2 = "Test12345!",
-            name = "테스트 계정"
+            name = "테스트 계정",
+            phone = "010-1234-5678"
         )
         val json = objectMapper.writeValueAsString(request)
 
@@ -127,6 +133,29 @@ class UserControllerTest {
             .andDo(print())
     }
 
+    fun 회원가입시_휴대폰번호_형식을_잘못_입력한_경우() {
+        // given
+        val request = SignUpRequest(
+            email = "test@gmail.com",
+            password = "Test1234!",
+            password2 = "Test1234!",
+            name = "테스트 계정",
+            phone = "010-123-456"
+        )
+
+        val json = objectMapper.writeValueAsString(request)
+
+        // expected
+        mockMvc.perform(
+            post("/signup?isIdentified=true")
+                .contentType(APPLICATION_JSON)
+                .content(json)
+        ).andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.message").value("올바르지 않은 휴대폰번호 형식입니다."))
+            .andExpect(jsonPath("$.statusCode").value("400 Bad Request"))
+            .andDo(print())
+    }
+
     @Test
     fun 회원가입시_특정_필드를_입력하지_않은_경우() {
         // given
@@ -134,7 +163,8 @@ class UserControllerTest {
             email = "test@gmail.com",
             password = "Test1234!",
             password2 = "Test1234!",
-            name = ""
+            name = "",
+            phone = "010-1234-5678"
         )
         val json = objectMapper.writeValueAsString(request)
 
@@ -152,19 +182,14 @@ class UserControllerTest {
     @Test
     fun 이미_사용중인_이메일로_회원가입을_시도하는_경우() {
         // given
-        val user = SignUpRequest(
-            email = "test@gmail.com",
-            password = "Test1234!",
-            password2 = "Test1234!",
-            name = "테스트 계정"
-        ).to(passwordEncoder = passwordEncoder)
-        userRepository.save(user)
+        val user = getUser()
 
         val request = SignUpRequest(
             email = user.email,
             password = "Test1234!",
             password2 = "Test1234!",
-            name = "테스트 계정"
+            name = "테스트 계정",
+            phone = "010-1234-5678"
         )
         val json = objectMapper.writeValueAsString(request)
 
@@ -186,7 +211,8 @@ class UserControllerTest {
             email = "test@gmail.com",
             password = "Test1234!",
             password2 = "Test1234!",
-            name = "테스트 계정"
+            name = "테스트 계정",
+            phone = "010-1234-5678"
         )
         val json = objectMapper.writeValueAsString(request)
 
@@ -200,4 +226,12 @@ class UserControllerTest {
             .andExpect(jsonPath("$.statusCode").value("400 Bad Request"))
             .andDo(print())
     }
+
+    private fun getUser() = User(
+        email = "test@gmail.com",
+        password = passwordEncoder.encode("Test1234!"),
+        name = "테스트 계정",
+        nickname = generateNickname(),
+        phone = "010-1234-5678"
+    ).let { userRepository.save(it) }
 }

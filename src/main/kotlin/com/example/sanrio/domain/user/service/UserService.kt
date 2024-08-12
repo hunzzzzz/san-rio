@@ -50,8 +50,8 @@ class UserService(
     @Description("회원가입")
     fun signup(isIdentified: Boolean, request: SignUpRequest) {
         checkVerification(isIdentified = isIdentified)
-        checkEmailDuplication(email = request.email)
-        checkTwoPasswords(first = request.password, second = request.password2)
+        checkEmailDuplication(email = request.email!!)
+        checkTwoPasswords(first = request.password!!, second = request.password2!!)
 
         request.to(passwordEncoder = passwordEncoder) // DTO -> 엔티티
             .let { userRepository.save(it) } // 저장

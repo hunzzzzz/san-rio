@@ -24,7 +24,13 @@ class User(
     val name: String,
 
     @Column(name = "nickname", nullable = false)
-    val nickname: String
+    val nickname: String,
+
+    @Column(name = "phone", nullable = false)
+    val phone: String,
+
+    @Column(name = "point", nullable = false)
+    val point: Int = 0
 ) : BaseEntity() {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

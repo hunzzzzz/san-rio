@@ -236,7 +236,8 @@ class AddressControllerTest {
             email = "test2@gmail.com",
             password = passwordEncoder.encode("Test1234!"),
             name = "테스트 계정",
-            nickname = generateNickname()
+            nickname = generateNickname(),
+            phone = "010-1234-5678"
         ).let { userRepository.save(it) }
 
     private fun setAddress(
