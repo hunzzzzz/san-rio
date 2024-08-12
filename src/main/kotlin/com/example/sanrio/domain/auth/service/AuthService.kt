@@ -36,7 +36,10 @@ class AuthService(
         )
 
         // JWT 토큰 생성 후 Cookie에 저장
-        val token = jwtProvider.createToken(userId = user.id!!, email = user.email, role = user.role)
-        jwtProvider.addTokenToCookie(token = token, response = response)
+        val accessToken = jwtProvider.getAccessToken(userId = user.id!!, email = user.email, role = user.role)
+        val refreshToken = jwtProvider.getRefreshToken(userId = user.id, email = user.email, role = user.role)
+
+        jwtProvider.addTokenToCookie(token = accessToken, response = response, type = "atk")
+        jwtProvider.addTokenToCookie(token = refreshToken, response = response, type = "rtk")
     }
 }
