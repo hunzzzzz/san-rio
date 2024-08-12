@@ -13,7 +13,7 @@ import com.example.sanrio.domain.order.repository.OrderItemRepository
 import com.example.sanrio.domain.order.repository.OrderRepository
 import com.example.sanrio.domain.product.model.ProductStatus.SOLD_OUT
 import com.example.sanrio.domain.user.model.User
-import com.example.sanrio.domain.user.repository.AddressRepository
+import com.example.sanrio.domain.address.repository.AddressRepository
 import com.example.sanrio.global.exception.case.OrderException
 import com.example.sanrio.global.utility.EntityFinder
 import com.example.sanrio.global.utility.OrderCodeGenerator.generateOrderCode

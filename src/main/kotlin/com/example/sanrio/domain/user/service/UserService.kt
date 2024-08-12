@@ -2,11 +2,9 @@ package com.example.sanrio.domain.user.service
 
 import com.example.sanrio.domain.cart.model.Cart
 import com.example.sanrio.domain.cart.repository.CartRepository
-import com.example.sanrio.domain.user.dto.request.LoginRequest
 import com.example.sanrio.domain.user.dto.request.SignUpRequest
 import com.example.sanrio.domain.user.model.User
 import com.example.sanrio.domain.user.repository.UserRepository
-import com.example.sanrio.global.exception.case.LoginException
 import com.example.sanrio.global.exception.case.SignUpException
 import com.example.sanrio.global.exception.case.VerificationException
 import com.example.sanrio.global.utility.MailSender
