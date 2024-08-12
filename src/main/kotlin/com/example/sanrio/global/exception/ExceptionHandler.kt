@@ -40,6 +40,12 @@ class ExceptionHandler {
     fun handleModelNotFoundException(e: ModelNotFoundException) =
         ErrorResponse(message = e.message!!, statusCode = "400 Bad Request")
 
+    // 권한이 없는 요청을 한 경우
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    @ExceptionHandler(ForbiddenException::class)
+    fun handleForbiddenException(e: ForbiddenException) =
+        ErrorResponse(message = e.message!!, statusCode = "403 Forbidden")
+
     // 로그인 시 이메일 혹은 비밀번호를 잘못 입력한 경우
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(LoginException::class)
