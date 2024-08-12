@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
+import java.net.URI
 
 @RestController
 class AddressController(
@@ -23,5 +24,5 @@ class AddressController(
         @PathVariable userId: Long,
         @Valid @RequestBody request: AddressRequest
     ) = addressService.setAddress(userPrincipal = userPrincipal, userId = userId, request = request)
-        .let { ResponseEntity.ok().body(it) }
+        .let { ResponseEntity.created(URI.create("/users/${userPrincipal.id}")).body(it) }
 }

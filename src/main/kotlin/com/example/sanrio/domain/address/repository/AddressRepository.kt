@@ -9,5 +9,7 @@ import org.springframework.stereotype.Repository
 interface AddressRepository : JpaRepository<Address, Long> {
     fun existsByUser(user: User): Boolean
 
+    fun findByUser(user: User): List<Address>
+
     fun findByUserAndDefault(user: User, default: Boolean): Address
 }
