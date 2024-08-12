@@ -32,6 +32,9 @@ class Address(
     @Column(name = "address_id", nullable = false, unique = true)
     val id: Long? = null
 
+    @Description("기본 주소로 설정/해제")
+    fun updateDefault() = (!this.default).also { this.default = it }
+
     @Description("주소 업데이트")
     fun update(request: AddressRequest, encryptor: Encryptor) =
         request.let {

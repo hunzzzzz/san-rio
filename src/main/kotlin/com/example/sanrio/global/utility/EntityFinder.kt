@@ -1,5 +1,6 @@
 package com.example.sanrio.global.utility
 
+import com.example.sanrio.domain.address.repository.AddressRepository
 import com.example.sanrio.domain.cart.model.Cart
 import com.example.sanrio.domain.cart.repository.CartItemRepository
 import com.example.sanrio.domain.cart.repository.CartRepository
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service
 @Service
 class EntityFinder(
     private val userRepository: UserRepository,
+    private val addressRepository: AddressRepository,
     private val productRepository: ProductRepository,
     private val cartRepository: CartRepository,
     private val cartItemRepository: CartItemRepository,
@@ -38,4 +40,7 @@ class EntityFinder(
 
     fun findUserByEmail(email: String) =
         userRepository.findByEmail(email = email) ?: throw ModelNotFoundException("유저")
+
+    fun findAddressById(addressId: Long) =
+        addressRepository.findByIdOrNull(addressId) ?: throw ModelNotFoundException("주소")
 }
