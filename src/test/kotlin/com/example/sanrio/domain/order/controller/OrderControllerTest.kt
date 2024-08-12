@@ -13,10 +13,10 @@ import com.example.sanrio.domain.product.model.CharacterName
 import com.example.sanrio.domain.product.model.Product
 import com.example.sanrio.domain.product.model.ProductStatus
 import com.example.sanrio.domain.product.repository.ProductRepository
-import com.example.sanrio.domain.user.model.Address
+import com.example.sanrio.domain.address.model.Address
 import com.example.sanrio.domain.user.model.User
 import com.example.sanrio.domain.user.model.UserRole
-import com.example.sanrio.domain.user.repository.AddressRepository
+import com.example.sanrio.domain.address.repository.AddressRepository
 import com.example.sanrio.domain.user.repository.UserRepository
 import com.example.sanrio.global.auth.AuthenticationHelper
 import com.example.sanrio.global.auth.WithCustomMockUser

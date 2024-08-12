@@ -1,6 +1,7 @@
-package com.example.sanrio.domain.user.model
+package com.example.sanrio.domain.address.model
 
-import com.example.sanrio.domain.user.dto.request.AddressRequest
+import com.example.sanrio.domain.address.dto.request.AddressRequest
+import com.example.sanrio.domain.user.model.User
 import com.example.sanrio.global.model.BaseEntity
 import com.example.sanrio.global.utility.Encryptor
 import jakarta.persistence.*

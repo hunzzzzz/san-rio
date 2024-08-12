@@ -1,9 +1,6 @@
 package com.example.sanrio.domain.user.controller
 
-import com.example.sanrio.domain.user.dto.request.AddressRequest
-import com.example.sanrio.domain.user.dto.request.LoginRequest
 import com.example.sanrio.domain.user.dto.request.SignUpRequest
-import com.example.sanrio.domain.user.service.AddressService
 import com.example.sanrio.domain.user.service.UserService
 import jakarta.validation.Valid
 import org.springframework.context.annotation.Description
@@ -13,8 +10,7 @@ import java.net.URI
 
 @RestController
 class UserController(
-    private val userService: UserService,
-    private val addressService: AddressService
+    private val userService: UserService
 ) {
     @Description("회원가입")
     @PostMapping("/signup")
@@ -38,11 +34,4 @@ class UserController(
         @RequestParam code: String
     ) = userService.checkVerificationCode(email = email, code = code)
         .let { ResponseEntity.ok().body(it) }
-
-    @Description("주소 설정")
-    @PostMapping("/users/{userId}/address")
-    fun setAddress(
-        @PathVariable userId: Long,
-        @Valid @RequestBody request: AddressRequest
-    ) = ResponseEntity.ok().body(addressService.setAddress(userId = userId, request = request))
 }

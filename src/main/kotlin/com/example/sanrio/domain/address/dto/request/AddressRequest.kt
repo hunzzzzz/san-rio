@@ -1,6 +1,6 @@
-package com.example.sanrio.domain.user.dto.request
+package com.example.sanrio.domain.address.dto.request
 
-import com.example.sanrio.domain.user.model.Address
+import com.example.sanrio.domain.address.model.Address
 import com.example.sanrio.domain.user.model.User
 import com.example.sanrio.global.utility.Encryptor
 import jakarta.validation.constraints.NotBlank
