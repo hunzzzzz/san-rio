@@ -2,6 +2,7 @@ package com.example.sanrio.global.jwt
 
 import com.example.sanrio.global.exception.case.JwtTokenException
 import com.example.sanrio.global.utility.JwtProvider
+import io.jsonwebtoken.ExpiredJwtException
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
@@ -21,18 +22,31 @@ class JwtAuthenticationFilter(
         chain: FilterChain
     ) {
         // 토큰 추출
-        val tokenValue = jwtProvider.getTokenFromRequest(request)
+        val accessTokenValue = jwtProvider.getTokenFromRequest(request = request, type = "afk")
+        val refreshTokenValue = jwtProvider.getTokenFromRequest(request = request, type = "rfk")
 
-        if (tokenValue == null) chain.doFilter(request, response)
+        if (accessTokenValue == null || refreshTokenValue == null) chain.doFilter(request, response)
         else {
             // substring
-            val token = jwtProvider.substringToken(tokenValue)
+            val accessToken = jwtProvider.substringToken(accessTokenValue)
+            val refreshToken = jwtProvider.substringToken(refreshTokenValue)
 
             // 토큰 검증
-            jwtProvider.validateToken(token = token).onFailure { throw JwtTokenException() }
+            jwtProvider.validateToken(token = accessToken).onFailure { exception ->
+                when (exception) {
+                    ExpiredJwtException::class -> throw JwtTokenException("유저 정보가 만료되었습니다. 다시 로그인해주세요.")
+                    else -> throw JwtTokenException()
+                }
+            }
+            jwtProvider.validateToken(token = refreshToken).onFailure { exception ->
+                when (exception) {
+                    ExpiredJwtException::class -> throw JwtTokenException("유저 정보가 만료되었습니다. 다시 로그인해주세요.")
+                    else -> throw JwtTokenException()
+                }
+            }
 
             // 토큰에서 유저 정보 추출
-            val payload = jwtProvider.getUserInfoFromToken(token = token)
+            val payload = jwtProvider.getUserInfoFromToken(token = accessToken)
 
             // 추출한 유저 정보를 기반으로 인증 정보 설정
             val principal = UserPrincipal(

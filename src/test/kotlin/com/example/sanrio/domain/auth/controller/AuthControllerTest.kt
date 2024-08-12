@@ -61,13 +61,18 @@ class AuthControllerTest {
                 .contentType(APPLICATION_JSON)
                 .content(json)
         ).andExpect(status().isOk)
-            .andExpect(MockMvcResultMatchers.cookie().exists(COOKIE_NAME))
+            .andExpect(MockMvcResultMatchers.cookie().exists(COOKIE_NAME_ATK))
+            .andExpect(MockMvcResultMatchers.cookie().exists(COOKIE_NAME_RTK))
             .andDo(print())
             .andReturn()
 
-        val cookie = result.response.getCookie(COOKIE_NAME)
-        assertThat(cookie).isNotNull
-        assertThat(URLDecoder.decode(cookie!!.value, "UTF-8")).startsWith(BEARER_PREFIX)
+        val cookieAtk = result.response.getCookie(COOKIE_NAME_ATK)
+        assertThat(cookieAtk).isNotNull
+        assertThat(URLDecoder.decode(cookieAtk!!.value, "UTF-8")).startsWith(BEARER_PREFIX)
+
+        val cookieRtk = result.response.getCookie(COOKIE_NAME_RTK)
+        assertThat(cookieRtk).isNotNull
+        assertThat(URLDecoder.decode(cookieRtk!!.value, "UTF-8")).startsWith(BEARER_PREFIX)
     }
 
     private fun getUser() = SignUpRequest(
@@ -121,7 +126,8 @@ class AuthControllerTest {
     }
 
     companion object {
-        private const val COOKIE_NAME = "Authorization"
+        private const val COOKIE_NAME_ATK = "AccessToken"
+        private const val COOKIE_NAME_RTK = "RefreshToken"
         private const val BEARER_PREFIX = "Bearer "
     }
 }
