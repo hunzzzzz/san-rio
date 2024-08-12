@@ -8,14 +8,13 @@ import com.example.sanrio.domain.order.dto.response.OrderSliceResponse
 import com.example.sanrio.domain.order.model.Order
 import com.example.sanrio.domain.order.model.OrderItem
 import com.example.sanrio.domain.order.model.OrderPeriod
+import com.example.sanrio.domain.order.model.OrderStatus
 import com.example.sanrio.domain.order.repository.OrderItemRepository
 import com.example.sanrio.domain.order.repository.OrderRepository
 import com.example.sanrio.domain.product.model.ProductStatus.SOLD_OUT
 import com.example.sanrio.domain.user.model.User
 import com.example.sanrio.domain.user.repository.AddressRepository
-import com.example.sanrio.global.exception.case.EmptyAddressException
-import com.example.sanrio.global.exception.case.EmptyCartException
-import com.example.sanrio.global.exception.case.SoldOutItemsInCartException
+import com.example.sanrio.global.exception.case.OrderException
 import com.example.sanrio.global.utility.EntityFinder
 import com.example.sanrio.global.utility.OrderCodeGenerator.generateOrderCode
 import jakarta.transaction.Transactional
@@ -33,15 +32,16 @@ class OrderService(
 ) {
     @Description("품절 상품 여부 확인")
     private fun checkSoldOut(cartItems: List<CartItem>) =
-        check(cartItems.map { it.product.status }.count { it == SOLD_OUT } == 0) { throw SoldOutItemsInCartException() }
+        check(cartItems.map { it.product.status }
+            .count { it == SOLD_OUT } == 0) { throw OrderException("장바구니에 품절된 상품이 포함되어 있습니다.") }
 
     @Description("장바구니가 비어있는지 확인")
     private fun checkCartEmpty(cartItems: List<CartItem>) =
-        check(cartItems.isNotEmpty()) { throw EmptyCartException() }
+        check(cartItems.isNotEmpty()) { throw OrderException("장바구니에 상품이 존재하지 않습니다.") }
 
     @Description("유저의 배송지 정보가 설정되어 있는지 확인")
     private fun checkAddress(user: User) =
-        check(addressRepository.existsByUser(user = user)) { throw EmptyAddressException() }
+        check(addressRepository.existsByUser(user = user)) { throw OrderException("배송지 정보가 존재하지 않습니다.") }
 
     @Description("주문 후 장바구니를 리셋")
     private fun resetCart(cart: Cart) {
@@ -92,7 +92,8 @@ class OrderService(
         val pageable = PageRequest.ofSize(ORDER_PAGE_SIZE)
 
         // 주문 내역 조회
-        val slice = orderRepository.getOrders(pageable = pageable, userId = userId, cursorId = cursorId, period = period)
+        val slice =
+            orderRepository.getOrders(pageable = pageable, userId = userId, cursorId = cursorId, period = period)
 
         // 주문 내역 하위의 상품 목록 조회
         val list = mutableListOf<OrderDataResponse>()
@@ -104,6 +105,29 @@ class OrderService(
         }
 
         return OrderSliceResponse(size = slice.size, numberOfElements = slice.numberOfElements, contents = list)
+    }
+
+    @Description("결제완료(PAID)인 주문만 취소")
+    private fun checkStatus(status: OrderStatus) =
+        check(status == OrderStatus.PAID) {
+            if (status == OrderStatus.SHIPPING) throw OrderException("해당 상품에 대한 배송이 시작되어, 취소가 불가능합니다.")
+            else throw OrderException("잘못된 요청입니다. 취소가 불가능한 주문입니다.")
+        }
+
+    @Description("해당 유저가 진행한 주문이 맞는지 확인")
+    private fun checkUser(order: Order, user: User) =
+        check(order.user.id == user.id) { throw OrderException("본인의 주문 건에 대한 취소 신청만 가능합니다.") }
+
+    @Description("주문 취소 신청")
+    @Transactional
+    fun cancelOrder(userId: Long, orderId: Long) {
+        val user = entityFinder.findUserById(userId = userId)
+        val order = entityFinder.findOrderById(orderId = orderId)
+
+        checkUser(order = order, user = user)
+        checkStatus(status = order.status)
+
+        order.updateStatus(status = OrderStatus.REQUESTED_FOR_CANCEL)
     }
 
     companion object {

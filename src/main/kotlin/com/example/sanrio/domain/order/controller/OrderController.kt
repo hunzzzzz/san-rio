@@ -3,7 +3,7 @@ package com.example.sanrio.domain.order.controller
 import com.example.sanrio.domain.order.model.OrderPeriod
 import com.example.sanrio.domain.order.service.OrderService
 import com.example.sanrio.global.jwt.UserPrincipal
-import jdk.jfr.Description
+import org.springframework.context.annotation.Description
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.*
@@ -27,6 +27,14 @@ class OrderController(
         @RequestParam(required = false) cursorId: Long?,
         @RequestParam(required = false) period: OrderPeriod?
     ) = orderService.getOrders(userId = userPrincipal.id, cursorId = cursorId, period = period)
+        .let { ResponseEntity.ok().body(it) }
+
+    @Description("주문 취소 신청")
+    @GetMapping("/cancel/{orderId}")
+    fun cancelOrder(
+        @AuthenticationPrincipal userPrincipal: UserPrincipal,
+        @PathVariable orderId: Long
+    ) = orderService.cancelOrder(userId = userPrincipal.id, orderId = orderId)
         .let { ResponseEntity.ok().body(it) }
 
 }
