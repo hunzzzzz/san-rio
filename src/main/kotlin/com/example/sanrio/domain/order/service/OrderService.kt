@@ -1,8 +1,10 @@
 package com.example.sanrio.domain.order.service
 
+import com.example.sanrio.domain.address.repository.AddressRepository
 import com.example.sanrio.domain.cart.model.Cart
 import com.example.sanrio.domain.cart.model.CartItem
 import com.example.sanrio.domain.cart.repository.CartItemRepository
+import com.example.sanrio.domain.order.dto.request.OrderRequest
 import com.example.sanrio.domain.order.dto.response.OrderDataResponse
 import com.example.sanrio.domain.order.dto.response.OrderSliceResponse
 import com.example.sanrio.domain.order.model.Order
@@ -13,7 +15,6 @@ import com.example.sanrio.domain.order.repository.OrderItemRepository
 import com.example.sanrio.domain.order.repository.OrderRepository
 import com.example.sanrio.domain.product.model.ProductStatus.SOLD_OUT
 import com.example.sanrio.domain.user.model.User
-import com.example.sanrio.domain.address.repository.AddressRepository
 import com.example.sanrio.global.exception.case.OrderException
 import com.example.sanrio.global.utility.EntityFinder
 import com.example.sanrio.global.utility.OrderCodeGenerator.generateOrderCode
@@ -43,6 +44,12 @@ class OrderService(
     private fun checkAddress(user: User) =
         check(addressRepository.existsByUser(user = user)) { throw OrderException("배송지 정보가 존재하지 않습니다.") }
 
+    @Description("사용하고자 하는 포인트가 유효한지 확인")
+    private fun checkPoint(userPoint: Int, point: Int) {
+        check(point >= 100 && point % 10 == 0) { throw OrderException("적립금은 100원 이상부터 10원 단위로 사용 가능합니다.") }
+        check(point <= userPoint) { throw OrderException("보유하신 적립금보다 작은 값을 입력해주세요.") }
+    }
+
     @Description("주문 후 장바구니를 리셋")
     private fun resetCart(cart: Cart) {
         cart.resetTotalPrice()
@@ -51,7 +58,7 @@ class OrderService(
 
     @Description("장바구니에 있는 상품들에 대한 주문을 진행")
     @Transactional
-    fun makeOrder(userId: Long) {
+    fun makeOrder(userId: Long, request: OrderRequest?) {
         val user = entityFinder.findUserById(userId = userId)
         val cart = entityFinder.findCartByUser(user = user)
         val cartItems = cartItemRepository.findAllByCart(cart = cart)
@@ -59,6 +66,7 @@ class OrderService(
         checkSoldOut(cartItems = cartItems)
         checkCartEmpty(cartItems = cartItems)
         checkAddress(user = user)
+        if (request?.point != null) checkPoint(userPoint = user.point, point = request.point)
 
         // 배송하고자 하는 유저의 기본 설정 주소
         val address = addressRepository.findByUserAndDefault(user = user, default = true)
@@ -69,19 +77,25 @@ class OrderService(
             totalPrice = cart.totalPrice,
             user = user,
             streetAddress = address.streetAddress,
-            detailAddress = address.detailAddress
+            detailAddress = address.detailAddress,
+            orderRequest = request?.request ?: "부재 시 문 앞에 놔주세요.",
+            usedPoint = request?.point
         ).let { orderRepository.save(it) }
 
         // OrderItem 객체 저장
         cartItems.forEach { cartItem ->
             // 재고 수량 변경
-            entityFinder.findProductById(productId = cartItem.product.id!!)
-                .let { product -> product.decreaseStock(count = cartItem.count) }
+            val product = entityFinder.findProductById(productId = cartItem.product.id!!)
+            product.decreaseStock(count = cartItem.count)
 
             // 저장
             OrderItem(count = cartItem.count, unitPrice = cartItem.unitPrice, product = cartItem.product, order = order)
                 .let { orderItem -> orderItemRepository.save(orderItem) }
         }
+
+        // 포인트 차감
+        if (request?.point != null)
+            user.updatePoint(point = (request.point * (-1)))
 
         // 장바구니 리셋
         resetCart(cart = cart)
@@ -134,10 +148,14 @@ class OrderService(
     @Transactional
     fun acceptCancelOrder(userId: Long, orderId: Long) {
         val order = entityFinder.findOrderById(orderId = orderId)
+        val user = entityFinder.findUserById(userId = order.user.id!!)
 
         // 재고 수량 복구
         orderItemRepository.findByOrder(order = order)
             .forEach { orderItem -> orderItem.product.increaseStock(count = orderItem.count) }
+
+        // 포인트 복구
+        user.updatePoint(point = order.usedPoint ?: 0)
 
         // 취소 완료
         order.updateStatus(status = OrderStatus.CANCELLED)

@@ -24,7 +24,8 @@ class WithAccountSecurityContextFactory(
             password = "Test1234!",
             name = "테스트 계정",
             nickname = generateNickname(),
-            phone = "010-1234-5678"
+            phone = "010-1234-5678",
+            point = 10000
         ).let { userRepository.save(it) }
 
         val principal = UserPrincipal(

@@ -16,13 +16,19 @@ class Order(
     var status: OrderStatus = OrderStatus.PAID,
 
     @Column(name = "total_price", nullable = false)
-    val totalPrice: Int = 0,
+    val totalPrice: Int,
 
     @Column(name = "street_address", nullable = false)
     val streetAddress: String,
 
     @Column(name = "detail_address", nullable = false)
     val detailAddress: ByteArray,
+
+    @Column(name = "order_request", nullable = false)
+    val orderRequest: String,
+
+    @Column(name = "used_point", nullable = true)
+    val usedPoint: Int?,
 
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)

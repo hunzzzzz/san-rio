@@ -2,7 +2,9 @@ package com.example.sanrio.global.scheduled
 
 import com.example.sanrio.domain.order.model.OrderStatus
 import com.example.sanrio.domain.order.repository.OrderRepository
+import com.example.sanrio.global.jwt.AuthenticationHelper
 import com.example.sanrio.global.utility.EntityFinder
+import jakarta.transaction.Transactional
 import org.springframework.context.annotation.Description
 import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.scheduling.annotation.Scheduled
@@ -13,7 +15,8 @@ import java.time.LocalDateTime
 class OrderScheduleService(
     private val orderRepository: OrderRepository,
     private val entityFinder: EntityFinder,
-    private val redisTemplate: RedisTemplate<String, String>
+    private val redisTemplate: RedisTemplate<String, String>,
+    private val authenticationHelper: AuthenticationHelper
 ) {
     @Description("LocalDateTime을 문자열로 전환")
     private fun localDateTimeToString(time: LocalDateTime) =
@@ -25,7 +28,8 @@ class OrderScheduleService(
             .let { (year, month, day, hour, minute) -> LocalDateTime.of(year, month, day, hour, minute) }
 
     @Description("결제완료(PAID) 후 하루가 지나면 배송중(SHIPPING)으로 변경")
-    @Scheduled(fixedRate = 1000 * 60 * 5) // 5분 간격
+    @Scheduled(fixedRate = 1000L * 60 * 5) // 5분 간격
+    @Transactional
     fun updateOrderStatusByShipping() {
         // 결제완료(PAID) 후 1일이 지난 주문의 status를 배송중(SHIPPING)으로 변경
         val keys = redisTemplate.keys("order_paid_*")
@@ -35,8 +39,11 @@ class OrderScheduleService(
             val createdAt = stringToLocalDateTime(time = hash["createdAt"]!!)
 
             if (createdAt > LocalDateTime.now().plusDays(1)) {
+                // 상태 변경
                 val order = entityFinder.findOrderById(orderId = orderId)
                 order.updateStatus(OrderStatus.SHIPPING)
+
+                // 캐시 삭제
                 redisTemplate.delete("order_paid_${orderId}")
             }
         }
@@ -55,7 +62,8 @@ class OrderScheduleService(
     }
 
     @Description("배송중(SHIPPING) 후 하루가 지나면 배송완료(DELIVERED)으로 변경")
-    @Scheduled(fixedRate = 1000 * 60 * 5) // 5분 간격
+    @Scheduled(fixedRate = 1000L * 60 * 5) // 5분 간격
+    @Transactional
     fun updateOrderStatusByDelivered() {
         // 배송중(SHIPPING) 후 1일이 지난 주문의 status를 배송완료(DELIVERED)으로 변경
         val keys = redisTemplate.keys("order_shipping_*")
@@ -65,8 +73,15 @@ class OrderScheduleService(
             val createdAt = stringToLocalDateTime(time = hash["createdAt"]!!)
 
             if (createdAt > LocalDateTime.now().plusDays(1)) {
+                // 상태 변경
                 val order = entityFinder.findOrderById(orderId = orderId)
                 order.updateStatus(OrderStatus.DELIVERED)
+
+                // 포인트 적립
+                val user = entityFinder.findUserById(authenticationHelper.getCurrentUser().id)
+                user.updatePoint(point = (order.totalPrice * 0.02).toInt())
+
+                // Redis 캐시 삭제
                 redisTemplate.delete("order_shipping_${orderId}")
             }
         }

@@ -1,6 +1,5 @@
-package com.example.sanrio.global.auth
+package com.example.sanrio.global.jwt
 
-import com.example.sanrio.global.jwt.UserPrincipal
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Component
 

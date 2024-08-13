@@ -6,7 +6,7 @@ import com.example.sanrio.domain.address.repository.AddressRepository
 import com.example.sanrio.domain.cart.repository.CartRepository
 import com.example.sanrio.domain.user.model.User
 import com.example.sanrio.domain.user.repository.UserRepository
-import com.example.sanrio.global.auth.AuthenticationHelper
+import com.example.sanrio.global.jwt.AuthenticationHelper
 import com.example.sanrio.global.auth.WithCustomMockUser
 import com.example.sanrio.global.utility.Encryptor
 import com.example.sanrio.global.utility.EntityFinder
