@@ -77,10 +77,6 @@ class OrderScheduleService(
                 val order = entityFinder.findOrderById(orderId = orderId)
                 order.updateStatus(OrderStatus.DELIVERED)
 
-                // 포인트 적립
-                val user = entityFinder.findUserById(authenticationHelper.getCurrentUser().id)
-                user.updatePoint(point = (order.totalPrice * 0.02).toInt())
-
                 // Redis 캐시 삭제
                 redisTemplate.delete("order_shipping_${orderId}")
             }
