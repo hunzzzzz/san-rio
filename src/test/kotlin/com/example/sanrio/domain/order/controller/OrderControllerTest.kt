@@ -6,6 +6,7 @@ import com.example.sanrio.domain.cart.model.Cart
 import com.example.sanrio.domain.cart.model.CartItem
 import com.example.sanrio.domain.cart.repository.CartItemRepository
 import com.example.sanrio.domain.cart.repository.CartRepository
+import com.example.sanrio.domain.order.dto.request.OrderRequest
 import com.example.sanrio.domain.order.model.Order
 import com.example.sanrio.domain.order.model.OrderItem
 import com.example.sanrio.domain.order.model.OrderStatus
@@ -18,12 +19,13 @@ import com.example.sanrio.domain.product.repository.ProductRepository
 import com.example.sanrio.domain.user.model.User
 import com.example.sanrio.domain.user.model.UserRole
 import com.example.sanrio.domain.user.repository.UserRepository
-import com.example.sanrio.global.auth.AuthenticationHelper
 import com.example.sanrio.global.auth.WithCustomMockUser
+import com.example.sanrio.global.jwt.AuthenticationHelper
 import com.example.sanrio.global.utility.Encryptor
 import com.example.sanrio.global.utility.EntityFinder
 import com.example.sanrio.global.utility.NicknameGenerator.generateNickname
 import com.example.sanrio.global.utility.OrderCodeGenerator
+import com.fasterxml.jackson.databind.ObjectMapper
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
@@ -49,6 +51,15 @@ class OrderControllerTest {
     lateinit var mockMvc: MockMvc
 
     @Autowired
+    lateinit var encryptor: Encryptor
+
+    @Autowired
+    lateinit var authenticationHelper: AuthenticationHelper
+
+    @Autowired
+    lateinit var objectMapper: ObjectMapper
+
+    @Autowired
     lateinit var addressRepository: AddressRepository
 
     @Autowired
@@ -68,12 +79,6 @@ class OrderControllerTest {
 
     @Autowired
     lateinit var orderItemRepository: OrderItemRepository
-
-    @Autowired
-    lateinit var encryptor: Encryptor
-
-    @Autowired
-    lateinit var authenticationHelper: AuthenticationHelper
 
     @AfterEach
     fun clean() {
@@ -108,6 +113,34 @@ class OrderControllerTest {
         assertThat(orderItemRepository.count()).isEqualTo(productRepository.count())
         assertThat(entityFinder.findCartByUser(user = user).totalPrice).isEqualTo(0)
         assertThat(cartItemRepository.count()).isEqualTo(0)
+    }
+
+    @Test
+    @WithCustomMockUser
+    fun 포인트를_사용하여_주문한_경우() {
+        // given
+        val user = entityFinder.findUserById(authenticationHelper.getCurrentUser().id)
+        val cart = setCart(user = user)
+
+        val initialPoint = user.point
+        val usingPoint = 1000
+
+        val request = OrderRequest(point = usingPoint, request = "요청사항")
+        val json = objectMapper.writeValueAsString(request)
+
+        setAddress(user = user)
+        setProducts()
+        setCartItems(cart = cart)
+
+        // expected
+        mockMvc.perform(
+            post("/orders")
+                .contentType(APPLICATION_JSON)
+                .content(json)
+        ).andExpect(status().isOk)
+            .andDo(print())
+
+        assertThat(entityFinder.findUserById(userId = user.id!!).point).isEqualTo(initialPoint - usingPoint)
     }
 
     @Test
@@ -325,6 +358,8 @@ class OrderControllerTest {
         val admin = entityFinder.findUserById(authenticationHelper.getCurrentUser().id)
         val user = setUser()
         val order = setOrder(user = user, status = OrderStatus.REQUESTED_FOR_CANCEL)
+
+        val initialPoint = user.point
         val quantity = 1
 
         setProducts()
@@ -340,6 +375,7 @@ class OrderControllerTest {
         assertThat(entityFinder.findOrderById(orderId = order.id!!).status).isEqualTo(OrderStatus.CANCELLED)
         assertThat(productRepository.findAll().map { it.stock }
             .count { it == AMOUNT_OF_PRODUCTS + quantity }).isEqualTo(productRepository.count())
+        assertThat(entityFinder.findUserById(userId = user.id!!).point).isEqualTo(initialPoint + (order.usedPoint ?: 0))
     }
 
     private fun setUser() = User(
@@ -395,6 +431,8 @@ class OrderControllerTest {
             totalPrice = (10000..99999).random(),
             streetAddress = "도로명 주소",
             detailAddress = encryptor.encrypt("상세 주소"),
+            orderRequest = "요청 사항",
+            usedPoint = 0,
             user = user
         ).let { orderRepository.save(it) }
 
@@ -415,6 +453,8 @@ class OrderControllerTest {
                 totalPrice = (10000..99999).random(),
                 streetAddress = "도로명 주소",
                 detailAddress = encryptor.encrypt("상세 주소"),
+                orderRequest = "요청 사항",
+                usedPoint = 0,
                 user = user
             ).let { orderRepository.save(it) }
         }

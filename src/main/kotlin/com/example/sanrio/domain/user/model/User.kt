@@ -2,6 +2,7 @@ package com.example.sanrio.domain.user.model
 
 import com.example.sanrio.global.model.BaseEntity
 import jakarta.persistence.*
+import org.springframework.context.annotation.Description
 
 @Entity
 @Table(name = "users")
@@ -30,10 +31,15 @@ class User(
     val phone: String,
 
     @Column(name = "point", nullable = false)
-    val point: Int = 0
+    var point: Int = 0
 ) : BaseEntity() {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_id", nullable = false, unique = true)
     val id: Long? = null
+
+    @Description("주문이 배송완료가 되면, 주문 금액의 1%가 유저의 포인트로 적립됨")
+    fun updatePoint(point: Int) {
+        this.point += point
+    }
 }

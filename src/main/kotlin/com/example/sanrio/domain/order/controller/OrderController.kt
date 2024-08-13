@@ -1,5 +1,6 @@
 package com.example.sanrio.domain.order.controller
 
+import com.example.sanrio.domain.order.dto.request.OrderRequest
 import com.example.sanrio.domain.order.model.OrderPeriod
 import com.example.sanrio.domain.order.service.OrderService
 import com.example.sanrio.global.jwt.UserPrincipal
@@ -14,11 +15,12 @@ import org.springframework.web.bind.annotation.*
 class OrderController(
     private val orderService: OrderService
 ) {
-    @Description("주문 완료")
+    @Description("주문 진행")
     @PostMapping
     fun makeOrder(
-        @AuthenticationPrincipal userPrincipal: UserPrincipal
-    ) = orderService.makeOrder(userId = userPrincipal.id)
+        @AuthenticationPrincipal userPrincipal: UserPrincipal,
+        @RequestBody request: OrderRequest?
+    ) = orderService.makeOrder(userId = userPrincipal.id, request = request)
         .let { ResponseEntity.ok().body(it) }
 
     @Description("주문 내역 조회")
