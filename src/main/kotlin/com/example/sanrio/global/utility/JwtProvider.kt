@@ -66,7 +66,7 @@ class JwtProvider(
             URLEncoder.encode(token, "UTF-8") // value
         ).let {
             it.path = "/" // 모든 경로에 Cookie 적용
-            it.maxAge = if (type == "atk") expirationTimeOfAtk else expirationTimeOfRtk // 쿠키 유효 시간
+            it.maxAge = if (type == "atk") expirationTimeOfAtk / 1000 else expirationTimeOfRtk / 1000 // 쿠키 유효 시간
             response.addCookie(it) // HTTP Response에 Cookie 추가
         }
     }
@@ -88,5 +88,20 @@ class JwtProvider(
     fun getTokenFromRequest(request: HttpServletRequest, type: String): String? {
         val cookie = request.cookies?.find { it.name == if (type == "atk") "AccessToken" else "RefreshToken" }
         return cookie?.value?.let { token -> URLDecoder.decode(token, "UTF-8") }
+    }
+
+    @Description("로그아웃 시 JWT 토큰 관련 Cookie 삭제")
+    fun deleteCookie(response: HttpServletResponse) {
+        Cookie("AccessToken", null).let {
+            it.path = "/"
+            it.maxAge = 0
+            response.addCookie(it)
+        }
+
+        Cookie("RefreshToken", null).let {
+            it.path = "/"
+            it.maxAge = 0
+            response.addCookie(it)
+        }
     }
 }
