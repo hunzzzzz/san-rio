@@ -46,6 +46,12 @@ class ExceptionHandler {
     fun handleAddressException(e: AddressException) =
         ErrorResponse(message = e.message!!, statusCode = "400 Bad Request")
 
+    // 비밀번호 관련 에러
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(PasswordException::class)
+    fun handlePasswordException(e: PasswordException) =
+        ErrorResponse(message = e.message!!, statusCode = "400 Bad Request")
+
     // 권한이 없는 요청을 한 경우
     @ResponseStatus(HttpStatus.FORBIDDEN)
     @ExceptionHandler(ForbiddenException::class)
