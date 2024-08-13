@@ -4,6 +4,9 @@ import com.example.sanrio.domain.cart.repository.CartRepository
 import com.example.sanrio.domain.user.dto.request.LoginRequest
 import com.example.sanrio.domain.user.model.User
 import com.example.sanrio.domain.user.repository.UserRepository
+import com.example.sanrio.global.auth.WithCustomMockUser
+import com.example.sanrio.global.jwt.AuthenticationHelper
+import com.example.sanrio.global.utility.EntityFinder
 import com.example.sanrio.global.utility.NicknameGenerator.generateNickname
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.assertj.core.api.Assertions.assertThat
@@ -15,11 +18,10 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.MediaType.APPLICATION_JSON
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers.print
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
 import java.net.URLDecoder
 
 @SpringBootTest
@@ -32,13 +34,19 @@ class AuthControllerTest {
     lateinit var objectMapper: ObjectMapper
 
     @Autowired
+    lateinit var passwordEncoder: PasswordEncoder
+
+    @Autowired
+    lateinit var entityFinder: EntityFinder
+
+    @Autowired
+    lateinit var authenticationHelper: AuthenticationHelper
+
+    @Autowired
     lateinit var userRepository: UserRepository
 
     @Autowired
     lateinit var cartRepository: CartRepository
-
-    @Autowired
-    lateinit var passwordEncoder: PasswordEncoder
 
     @AfterEach
     fun clean() {
@@ -62,8 +70,8 @@ class AuthControllerTest {
                 .contentType(APPLICATION_JSON)
                 .content(json)
         ).andExpect(status().isOk)
-            .andExpect(MockMvcResultMatchers.cookie().exists(COOKIE_NAME_ATK))
-            .andExpect(MockMvcResultMatchers.cookie().exists(COOKIE_NAME_RTK))
+            .andExpect(cookie().exists(COOKIE_NAME_ATK))
+            .andExpect(cookie().exists(COOKIE_NAME_RTK))
             .andDo(print())
             .andReturn()
 
@@ -75,14 +83,6 @@ class AuthControllerTest {
         assertThat(cookieRtk).isNotNull
         assertThat(URLDecoder.decode(cookieRtk!!.value, "UTF-8")).startsWith(BEARER_PREFIX)
     }
-
-    private fun getUser() = User(
-        email = "test@gmail.com",
-        password = passwordEncoder.encode("Test1234!"),
-        name = "테스트 계정",
-        nickname = generateNickname(),
-        phone = "010-1234-5678"
-    ).let { userRepository.save(it) }
 
     @Test
     fun 존재하지_않는_이메일로_로그인을_시도한_경우() {
@@ -125,6 +125,35 @@ class AuthControllerTest {
             .andExpect(jsonPath("$.statusCode").value("400 Bad Request"))
             .andDo(print())
     }
+
+    @Test
+    @WithCustomMockUser
+    fun 정상적으로_로그아웃에_성공한_경우() {
+        // given
+        val user = entityFinder.findUserById(authenticationHelper.getCurrentUser().id)
+
+        // expected
+        val result = mockMvc.perform(
+            get("/logout")
+                .contentType(APPLICATION_JSON)
+        ).andExpect(status().isOk)
+            .andDo(print())
+            .andReturn()
+
+        val cookieAtk = result.response.getCookie(COOKIE_NAME_ATK)!!
+        val cookieRtk = result.response.getCookie(COOKIE_NAME_RTK)!!
+
+        assertThat(cookieAtk.maxAge).isEqualTo(0)
+        assertThat(cookieRtk.maxAge).isEqualTo(0)
+    }
+
+    private fun getUser() = User(
+        email = "test@gmail.com",
+        password = passwordEncoder.encode("Test1234!"),
+        name = "테스트 계정",
+        nickname = generateNickname(),
+        phone = "010-1234-5678"
+    ).let { userRepository.save(it) }
 
     companion object {
         private const val COOKIE_NAME_ATK = "AccessToken"
