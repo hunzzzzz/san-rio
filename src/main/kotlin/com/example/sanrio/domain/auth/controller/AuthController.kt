@@ -8,6 +8,7 @@ import jakarta.validation.Valid
 import org.springframework.context.annotation.Description
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
+import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
@@ -25,7 +26,7 @@ class AuthController(
         .let { ResponseEntity.ok().body(it) }
 
     @Description("로그아웃")
-    @PostMapping("/logout")
+    @GetMapping("/logout")
     fun logout(
         @AuthenticationPrincipal userPrincipal: UserPrincipal,
         response: HttpServletResponse
