@@ -1,8 +1,10 @@
 package com.example.sanrio.domain.user.controller
 
 import com.example.sanrio.domain.user.dto.request.SignUpRequest
+import com.example.sanrio.domain.user.dto.request.UpdatePasswordRequest
 import com.example.sanrio.domain.user.service.UserService
 import com.example.sanrio.global.jwt.UserPrincipal
+import jakarta.servlet.http.HttpServletResponse
 import jakarta.validation.Valid
 import org.springframework.context.annotation.Description
 import org.springframework.http.ResponseEntity
@@ -44,4 +46,18 @@ class UserController(
         @PathVariable userId: Long,
     ) = userService.getUserProfile(userPrincipal = userPrincipal, userId = userId)
         .let { ResponseEntity.ok().body(it) }
+
+    @Description("비밀번호 변경")
+    @PutMapping("/users/{userId}/password")
+    fun updatePassword(
+        @AuthenticationPrincipal userPrincipal: UserPrincipal,
+        @PathVariable userId: Long,
+        @Valid @RequestBody request: UpdatePasswordRequest,
+        response: HttpServletResponse
+    ) = userService.updatePassword(
+        userPrincipal = userPrincipal,
+        userId = userId,
+        request = request,
+        response = response
+    ).let { ResponseEntity.ok().body(it) }
 }

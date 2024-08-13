@@ -3,15 +3,20 @@ package com.example.sanrio.domain.user.service
 import com.example.sanrio.domain.cart.model.Cart
 import com.example.sanrio.domain.cart.repository.CartRepository
 import com.example.sanrio.domain.user.dto.request.SignUpRequest
+import com.example.sanrio.domain.user.dto.request.UpdatePasswordRequest
 import com.example.sanrio.domain.user.dto.response.UserResponse
 import com.example.sanrio.domain.user.model.User
 import com.example.sanrio.domain.user.repository.UserRepository
 import com.example.sanrio.global.exception.case.ForbiddenException
 import com.example.sanrio.global.exception.case.SignUpException
+import com.example.sanrio.global.exception.case.PasswordException
 import com.example.sanrio.global.exception.case.VerificationException
 import com.example.sanrio.global.jwt.UserPrincipal
 import com.example.sanrio.global.utility.EntityFinder
+import com.example.sanrio.global.utility.JwtProvider
 import com.example.sanrio.global.utility.MailSender
+import jakarta.servlet.http.HttpServletResponse
+import jakarta.transaction.Transactional
 import org.springframework.context.annotation.Description
 import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.mail.MailSendException
@@ -27,6 +32,7 @@ class UserService(
     private val mailSender: MailSender,
     private val redisTemplate: RedisTemplate<String, String>,
     private val entityFinder: EntityFinder,
+    private val jwtProvider: JwtProvider,
 ) {
     @Description("회원가입 시 본인 인증 완료 여부 확인")
     private fun checkVerification(isIdentified: Boolean) =
@@ -51,6 +57,15 @@ class UserService(
 
     @Description("회원가입 시 본인 인증 확인 이메일의 내용")
     private fun getText(code: String) = "다음 인증 코드 [${code}]를 웹 화면에 입력하면 인증이 완료됩니다."
+
+    @Description("본인 프로필이 맞는지 체크")
+    private fun checkUser(userPrincipal: UserPrincipal, userId: Long) =
+        check(userPrincipal.id == userId) { throw ForbiddenException() }
+
+    @Description("현재 본인의 패스워드가 맞는지 체크")
+    private fun checkCurrentPassword(user: User, inputPassword: String) =
+        check(passwordEncoder.matches(inputPassword, user.password))
+        { throw PasswordException("비밀번호가 일치하지 않습니다. 기존에 사용하신 패스워드를 정확하게 입력해주세요.") }
 
     @Description("회원가입")
     fun signup(isIdentified: Boolean, request: SignUpRequest) {
@@ -82,15 +97,31 @@ class UserService(
         check(redisTemplate.opsForValue().get(email) == code) { throw VerificationException("인증번호가 일치하지 않습니다.") }
     }
 
-    @Description("본인 프로필이 맞는지 체크")
-    private fun checkUser(userPrincipal: UserPrincipal, userId: Long) =
-        check(userPrincipal.id == userId) { throw ForbiddenException() }
-
     @Description("프로필 조회")
     fun getUserProfile(userPrincipal: UserPrincipal, userId: Long): UserResponse {
         checkUser(userPrincipal = userPrincipal, userId = userId)
 
         val user = entityFinder.findUserById(userId = userId)
         return UserResponse.from(user = user)
+    }
+
+    @Description("비밀번호 변경")
+    @Transactional
+    fun updatePassword(
+        userPrincipal: UserPrincipal,
+        userId: Long,
+        request: UpdatePasswordRequest,
+        response: HttpServletResponse
+    ) {
+        checkUser(userPrincipal = userPrincipal, userId = userId)
+
+        val user = entityFinder.findUserById(userId = userId)
+        checkCurrentPassword(user = user, inputPassword = request.currentPassword!!)
+        checkTwoPasswords(first = request.newPassword!!, second = request.newPassword2!!)
+
+        user.updatePassword(newPassword = passwordEncoder.encode(request.newPassword))
+
+        redisTemplate.delete(user.email)
+        jwtProvider.deleteCookie(response = response)
     }
 }
