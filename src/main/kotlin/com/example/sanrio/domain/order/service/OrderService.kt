@@ -93,9 +93,12 @@ class OrderService(
                 .let { orderItem -> orderItemRepository.save(orderItem) }
         }
 
-        // 포인트 차감
+        // 포인트 적립 - 사용한 포인트
         if (request?.point != null)
-            user.updatePoint(point = (request.point * (-1)))
+            user.updatePoint(point = (cart.totalPrice * 0.02).toInt() + (request.point * (-1)))
+        // 포인트 적립
+        else
+            user.updatePoint(point = (cart.totalPrice * 0.02).toInt())
 
         // 장바구니 리셋
         resetCart(cart = cart)
@@ -154,8 +157,11 @@ class OrderService(
         orderItemRepository.findByOrder(order = order)
             .forEach { orderItem -> orderItem.product.increaseStock(count = orderItem.count) }
 
-        // 포인트 복구
+        // 사용한 포인트 복구
         user.updatePoint(point = order.usedPoint ?: 0)
+
+        // 적립된 포인트 복구
+        user.updatePoint(point = (order.totalPrice * 0.02).toInt() * (-1))
 
         // 취소 완료
         order.updateStatus(status = OrderStatus.CANCELLED)

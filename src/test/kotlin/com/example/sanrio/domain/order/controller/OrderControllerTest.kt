@@ -102,6 +102,8 @@ class OrderControllerTest {
         setProducts()
         setCartItems(cart = cart)
 
+        val initialPoint = user.point
+
         // expected
         mockMvc.perform(
             post("/orders")
@@ -113,6 +115,8 @@ class OrderControllerTest {
         assertThat(orderItemRepository.count()).isEqualTo(productRepository.count())
         assertThat(entityFinder.findCartByUser(user = user).totalPrice).isEqualTo(0)
         assertThat(cartItemRepository.count()).isEqualTo(0)
+        assertThat(entityFinder.findUserById(userId = user.id!!).point)
+            .isEqualTo(initialPoint + (TEMP_TOTAL_PRICE * 0.02).toInt()) // 기존 포인트 + 적립 포인트
     }
 
     @Test
@@ -140,7 +144,8 @@ class OrderControllerTest {
         ).andExpect(status().isOk)
             .andDo(print())
 
-        assertThat(entityFinder.findUserById(userId = user.id!!).point).isEqualTo(initialPoint - usingPoint)
+        assertThat(entityFinder.findUserById(userId = user.id!!).point)
+            .isEqualTo(initialPoint - usingPoint + (TEMP_TOTAL_PRICE * 0.02).toInt()) // 기존 포인트 - 사용 포인트 + 적립 포인트
     }
 
     @Test
@@ -375,7 +380,8 @@ class OrderControllerTest {
         assertThat(entityFinder.findOrderById(orderId = order.id!!).status).isEqualTo(OrderStatus.CANCELLED)
         assertThat(productRepository.findAll().map { it.stock }
             .count { it == AMOUNT_OF_PRODUCTS + quantity }).isEqualTo(productRepository.count())
-        assertThat(entityFinder.findUserById(userId = user.id!!).point).isEqualTo(initialPoint + (order.usedPoint ?: 0))
+        assertThat(entityFinder.findUserById(userId = user.id!!).point)
+            .isEqualTo(initialPoint + (order.usedPoint ?: 0) - (TEMP_TOTAL_PRICE * 0.02).toInt()) // 기존 포인트 + 사용 호인트 - 적립 포인트
     }
 
     private fun setUser() = User(
@@ -416,19 +422,26 @@ class OrderControllerTest {
         )
     )
 
-    private fun setCart(user: User) = Cart(user = user).let { cartRepository.save(it) }
+    private fun setCart(user: User) = Cart(user = user, totalPrice = TEMP_TOTAL_PRICE).let { cartRepository.save(it) }
 
-    private fun setCartItems(cart: Cart, quantity: Int? = null) = productRepository.findAll().forEach {
-        val count = quantity ?: (1..5).random()
-        CartItem(count = count, unitPrice = it.price * count, product = it, cart = cart)
-            .let { cartItem -> cartItemRepository.save(cartItem) }
+    private fun setCartItems(cart: Cart, quantity: Int? = null): Int {
+        var totalPrice = 0
+        productRepository.findAll().forEach { product ->
+            val count = quantity ?: (1..5).random()
+            val unitPrice = product.price * count
+            totalPrice += unitPrice
+
+            CartItem(count = count, unitPrice = unitPrice, product = product, cart = cart)
+                .let { cartItem -> cartItemRepository.save(cartItem) }
+        }
+        return totalPrice
     }
 
     private fun setOrder(user: User, status: OrderStatus = OrderStatus.PAID) =
         Order(
             code = OrderCodeGenerator.generateOrderCode(CharacterName.entries.toTypedArray().random()),
             status = status,
-            totalPrice = (10000..99999).random(),
+            totalPrice = TEMP_TOTAL_PRICE,
             streetAddress = "도로명 주소",
             detailAddress = encryptor.encrypt("상세 주소"),
             orderRequest = "요청 사항",
@@ -450,7 +463,7 @@ class OrderControllerTest {
             Order(
                 code = OrderCodeGenerator.generateOrderCode(CharacterName.entries.toTypedArray().random()),
                 status = status ?: OrderStatus.entries.toTypedArray().random(),
-                totalPrice = (10000..99999).random(),
+                totalPrice = TEMP_TOTAL_PRICE,
                 streetAddress = "도로명 주소",
                 detailAddress = encryptor.encrypt("상세 주소"),
                 orderRequest = "요청 사항",
@@ -462,6 +475,7 @@ class OrderControllerTest {
     companion object {
         const val ORDER_PAGE_SIZE = 5
         const val AMOUNT_OF_ORDER = 100
+        const val TEMP_TOTAL_PRICE = 100_000
         const val PRICE_OF_PRODUCTS = 10_000
         const val AMOUNT_OF_PRODUCTS = 100
     }
