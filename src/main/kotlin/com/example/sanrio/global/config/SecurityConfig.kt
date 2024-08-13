@@ -17,8 +17,9 @@ class SecurityConfig(
     private val jwtAuthenticationFilter: JwtAuthenticationFilter,
     private val authenticationEntryPoint: CustomAuthenticationEntryPoint
 ) {
-    // 별도의 인증 과정 없이 접근할 수 있는 API
+    // 별도의 인증 과정 없이 접근할 수 있는 URI
     private val allowedUrls = arrayOf(
+        "/favicon.ico",
         "/h2-console/**",
         "/signup/**",
         "/login"
