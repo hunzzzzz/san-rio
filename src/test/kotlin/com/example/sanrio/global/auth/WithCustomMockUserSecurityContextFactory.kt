@@ -9,11 +9,13 @@ import com.example.sanrio.global.utility.NicknameGenerator.generateNickname
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.security.core.context.SecurityContext
 import org.springframework.security.core.context.SecurityContextHolder
+import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.security.test.context.support.WithSecurityContextFactory
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource
 
 class WithAccountSecurityContextFactory(
     private val userRepository: UserRepository,
+    private val passwordEncoder: PasswordEncoder,
     private val httpServletRequest: HttpServletRequest
 ) : WithSecurityContextFactory<WithCustomMockUser> {
 
@@ -21,7 +23,7 @@ class WithAccountSecurityContextFactory(
         val user = User(
             role = UserRole.ADMIN,
             email = "test@gmail.com",
-            password = "Test1234!",
+            password = passwordEncoder.encode("Test1234!"),
             name = "테스트 계정",
             nickname = generateNickname(),
             phone = "010-1234-5678",

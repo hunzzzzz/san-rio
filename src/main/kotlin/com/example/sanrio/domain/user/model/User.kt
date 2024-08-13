@@ -19,7 +19,7 @@ class User(
     val email: String,
 
     @Column(name = "password", nullable = false)
-    val password: String,
+    var password: String,
 
     @Column(name = "name", nullable = false)
     val name: String,
@@ -37,6 +37,9 @@ class User(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_id", nullable = false, unique = true)
     val id: Long? = null
+
+    @Description("비밀번호 변경")
+    fun updatePassword(newPassword: String) = newPassword.also { this.password = it }
 
     @Description("주문이 배송완료가 되면, 주문 금액의 1%가 유저의 포인트로 적립됨")
     fun updatePoint(point: Int) {

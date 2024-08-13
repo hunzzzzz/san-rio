@@ -2,13 +2,15 @@ package com.example.sanrio.domain.user.controller
 
 import com.example.sanrio.domain.cart.repository.CartRepository
 import com.example.sanrio.domain.user.dto.request.SignUpRequest
+import com.example.sanrio.domain.user.dto.request.UpdatePasswordRequest
 import com.example.sanrio.domain.user.model.User
 import com.example.sanrio.domain.user.repository.UserRepository
-import com.example.sanrio.global.jwt.AuthenticationHelper
 import com.example.sanrio.global.auth.WithCustomMockUser
+import com.example.sanrio.global.jwt.AuthenticationHelper
 import com.example.sanrio.global.utility.EntityFinder
 import com.example.sanrio.global.utility.NicknameGenerator.generateNickname
 import com.fasterxml.jackson.databind.ObjectMapper
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -17,8 +19,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.MediaType.APPLICATION_JSON
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.test.web.servlet.MockMvc
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers.print
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
@@ -72,6 +73,8 @@ class UserControllerTest {
                 .content(json)
         ).andExpect(status().isCreated)
             .andDo(print())
+
+        assertThat(userRepository.count()).isEqualTo(1)
     }
 
     @Test
@@ -282,4 +285,154 @@ class UserControllerTest {
         nickname = generateNickname(),
         phone = "010-1234-5678"
     ).let { userRepository.save(it) }
+
+    @Test
+    @WithCustomMockUser
+    fun 정상적으로_비밀번호를_변경한_경우() {
+        // given
+        val user = entityFinder.findUserById(authenticationHelper.getCurrentUser().id)
+
+        val request = UpdatePasswordRequest(
+            currentPassword = "Test1234!",
+            newPassword = "NewTest1234!",
+            newPassword2 = "NewTest1234!"
+        )
+        val json = objectMapper.writeValueAsString(request)
+
+        // expected
+        mockMvc.perform(
+            put("/users/${user.id}/password")
+                .contentType(APPLICATION_JSON)
+                .content(json)
+        ).andExpect(status().isOk)
+            .andDo(print())
+
+        assertThat(
+            passwordEncoder.matches(
+                "NewTest1234!",
+                entityFinder.findUserById(userId = user.id!!).password
+            )
+        ).isTrue()
+    }
+
+    @Test
+    @WithCustomMockUser
+    fun 다른_회원의_비밀번호를_변경하려는_경우() {
+        // given
+        val user = entityFinder.findUserById(authenticationHelper.getCurrentUser().id)
+        val anotherUser = getUser()
+
+        val request = UpdatePasswordRequest(
+            currentPassword = "Test1234!",
+            newPassword = "NewTest1234!",
+            newPassword2 = "NewTest1234!"
+        )
+        val json = objectMapper.writeValueAsString(request)
+
+        // expected
+        mockMvc.perform(
+            put("/users/${anotherUser.id}/password")
+                .contentType(APPLICATION_JSON)
+                .content(json)
+        ).andExpect(status().isForbidden)
+            .andExpect(jsonPath("$.message").value("권한이 없습니다."))
+            .andExpect(jsonPath("$.statusCode").value("403 Forbidden"))
+            .andDo(print())
+    }
+
+    @Test
+    @WithCustomMockUser
+    fun 패스워드_변경시_기존_비밀번호를_잘못_입력한_경우() {
+        // given
+        val user = entityFinder.findUserById(authenticationHelper.getCurrentUser().id)
+
+        val request = UpdatePasswordRequest(
+            currentPassword = "Null1234!",
+            newPassword = "NewTest1234!",
+            newPassword2 = "NewTest1234!"
+        )
+        val json = objectMapper.writeValueAsString(request)
+
+        // expected
+        mockMvc.perform(
+            put("/users/${user.id}/password")
+                .contentType(APPLICATION_JSON)
+                .content(json)
+        ).andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.message").value("비밀번호가 일치하지 않습니다. 기존에 사용하신 패스워드를 정확하게 입력해주세요."))
+            .andExpect(jsonPath("$.statusCode").value("400 Bad Request"))
+            .andDo(print())
+    }
+
+    @Test
+    @WithCustomMockUser
+    fun 비밀번호_변경시_입력한_두개의_패스워드가_일치하지_않는_경우() {
+        // given
+        val user = entityFinder.findUserById(authenticationHelper.getCurrentUser().id)
+
+        val request = UpdatePasswordRequest(
+            currentPassword = "Test1234!",
+            newPassword = "NewTest1234!",
+            newPassword2 = "NewTest123!"
+        )
+        val json = objectMapper.writeValueAsString(request)
+
+        // expected
+        mockMvc.perform(
+            put("/users/${user.id}/password")
+                .contentType(APPLICATION_JSON)
+                .content(json)
+        ).andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.message").value("두 비밀번호가 일치하지 않습니다."))
+            .andExpect(jsonPath("$.statusCode").value("400 Bad Request"))
+            .andDo(print())
+    }
+
+    @Test
+    @WithCustomMockUser
+    fun 비밀번호_변경시_패스워드_형식을_잘못_입력한_경우() {
+        // given
+        val user = entityFinder.findUserById(authenticationHelper.getCurrentUser().id)
+
+        val request = UpdatePasswordRequest(
+            currentPassword = "Test1234!",
+            newPassword = "NewTest1234",
+            newPassword2 = "NewTest1234"
+        )
+        val json = objectMapper.writeValueAsString(request)
+
+        // expected
+        mockMvc.perform(
+            put("/users/${user.id}/password")
+                .contentType(APPLICATION_JSON)
+                .content(json)
+        ).andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.message").value("올바르지 않은 비밀번호 형식입니다. (8~16자의 알파벳 대소문자, 숫자, 특수문자로 구성)"))
+            .andExpect(jsonPath("$.statusCode").value("400 Bad Request"))
+            .andDo(print())
+    }
+
+    @Test
+    @WithCustomMockUser
+    fun 비밀번호_변경시_특정_필드를_입력하지_않은_경우() {
+        // given
+        val user = entityFinder.findUserById(authenticationHelper.getCurrentUser().id)
+
+        val request = UpdatePasswordRequest(
+            currentPassword = "",
+            newPassword = "NewTest1234!",
+            newPassword2 = "NewTest1234!"
+        )
+        val json = objectMapper.writeValueAsString(request)
+
+        // expected
+        mockMvc.perform(
+            put("/users/${user.id}/password")
+                .contentType(APPLICATION_JSON)
+                .content(json)
+        ).andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.message").value("기존 비밀번호를 입력해주세요."))
+            .andExpect(jsonPath("$.statusCode").value("400 Bad Request"))
+            .andDo(print())
+    }
 }
