@@ -1,5 +1,6 @@
 package com.example.sanrio.global.config
 
+import com.example.sanrio.global.jwt.CustomAuthenticationEntryPoint
 import com.example.sanrio.global.jwt.JwtAuthenticationFilter
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -13,7 +14,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableWebSecurity
 @EnableMethodSecurity(securedEnabled = true, prePostEnabled = true)
 class SecurityConfig(
-    private val jwtAuthenticationFilter: JwtAuthenticationFilter
+    private val jwtAuthenticationFilter: JwtAuthenticationFilter,
+    private val authenticationEntryPoint: CustomAuthenticationEntryPoint
 ) {
     // 별도의 인증 과정 없이 접근할 수 있는 API
     private val allowedUrls = arrayOf(
@@ -27,6 +29,7 @@ class SecurityConfig(
         return http
             .httpBasic { it.disable() }
             .formLogin { it.disable() }
+            .logout { it.disable() }
             .csrf { it.disable() }
             .cors { it.disable() }
             .headers { it.frameOptions { foc -> foc.disable() } }
@@ -35,6 +38,9 @@ class SecurityConfig(
                     .anyRequest().authenticated()
             }
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
+            .exceptionHandling {
+                it.authenticationEntryPoint(authenticationEntryPoint)
+            }
             .build()
     }
 }

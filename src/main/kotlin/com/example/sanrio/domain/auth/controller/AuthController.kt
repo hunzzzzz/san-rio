@@ -2,10 +2,12 @@ package com.example.sanrio.domain.auth.controller
 
 import com.example.sanrio.domain.auth.service.AuthService
 import com.example.sanrio.domain.user.dto.request.LoginRequest
+import com.example.sanrio.global.jwt.UserPrincipal
 import jakarta.servlet.http.HttpServletResponse
 import jakarta.validation.Valid
 import org.springframework.context.annotation.Description
 import org.springframework.http.ResponseEntity
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
@@ -20,5 +22,13 @@ class AuthController(
         @Valid @RequestBody request: LoginRequest,
         response: HttpServletResponse
     ) = authService.login(request = request, response = response)
+        .let { ResponseEntity.ok().body(it) }
+
+    @Description("로그아웃")
+    @PostMapping("/logout")
+    fun logout(
+        @AuthenticationPrincipal userPrincipal: UserPrincipal,
+        response: HttpServletResponse
+    ) = authService.logout(userId = userPrincipal.id, response = response)
         .let { ResponseEntity.ok().body(it) }
 }
