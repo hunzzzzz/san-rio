@@ -1,6 +1,8 @@
 package com.example.sanrio.domain.user.controller
 
 import com.example.sanrio.domain.cart.repository.CartRepository
+import com.example.sanrio.domain.order.controller.OrderControllerTest.Companion.ATK_EXPIRATION_TIME
+import com.example.sanrio.domain.order.controller.OrderControllerTest.Companion.RTK_EXPIRATION_TIME
 import com.example.sanrio.domain.user.dto.request.SignUpRequest
 import com.example.sanrio.domain.user.dto.request.UpdatePasswordRequest
 import com.example.sanrio.domain.user.model.User
@@ -8,8 +10,11 @@ import com.example.sanrio.domain.user.repository.UserRepository
 import com.example.sanrio.global.auth.WithCustomMockUser
 import com.example.sanrio.global.jwt.AuthenticationHelper
 import com.example.sanrio.global.utility.EntityFinder
+import com.example.sanrio.global.utility.JwtProvider
 import com.example.sanrio.global.utility.NicknameGenerator.generateNickname
 import com.fasterxml.jackson.databind.ObjectMapper
+import jakarta.servlet.http.Cookie
+import jakarta.servlet.http.HttpServletResponse
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
@@ -43,6 +48,12 @@ class UserControllerTest {
     lateinit var authenticationHelper: AuthenticationHelper
 
     @Autowired
+    lateinit var jwtProvider: JwtProvider
+
+    @Autowired
+    lateinit var response: HttpServletResponse
+
+    @Autowired
     lateinit var userRepository: UserRepository
 
     @Autowired
@@ -52,6 +63,7 @@ class UserControllerTest {
     fun clean() {
         cartRepository.deleteAll()
         userRepository.deleteAll()
+        jwtProvider.deleteCookie(response = response)
     }
 
     @Test
@@ -251,6 +263,8 @@ class UserControllerTest {
         mockMvc.perform(
             get("/users/${user.id}")
                 .contentType(APPLICATION_JSON)
+                .cookie(setAtkCookie(user = user))
+                .cookie(setRtkCookie(user = user))
         ).andExpect(status().isOk)
             .andExpect(jsonPath("$.userId").value(user.id))
             .andExpect(jsonPath("$.email").value(user.email))
@@ -272,6 +286,8 @@ class UserControllerTest {
         mockMvc.perform(
             get("/users/${anotherUser.id}")
                 .contentType(APPLICATION_JSON)
+                .cookie(setAtkCookie(user = user))
+                .cookie(setRtkCookie(user = user))
         ).andExpect(status().isForbidden)
             .andExpect(jsonPath("$.message").value("권한이 없습니다."))
             .andExpect(jsonPath("$.statusCode").value("403 Forbidden"))
@@ -304,6 +320,8 @@ class UserControllerTest {
             put("/users/${user.id}/password")
                 .contentType(APPLICATION_JSON)
                 .content(json)
+                .cookie(setAtkCookie(user = user))
+                .cookie(setRtkCookie(user = user))
         ).andExpect(status().isOk)
             .andDo(print())
 
@@ -334,6 +352,8 @@ class UserControllerTest {
             put("/users/${anotherUser.id}/password")
                 .contentType(APPLICATION_JSON)
                 .content(json)
+                .cookie(setAtkCookie(user = user))
+                .cookie(setRtkCookie(user = user))
         ).andExpect(status().isForbidden)
             .andExpect(jsonPath("$.message").value("권한이 없습니다."))
             .andExpect(jsonPath("$.statusCode").value("403 Forbidden"))
@@ -358,6 +378,8 @@ class UserControllerTest {
             put("/users/${user.id}/password")
                 .contentType(APPLICATION_JSON)
                 .content(json)
+                .cookie(setAtkCookie(user = user))
+                .cookie(setRtkCookie(user = user))
         ).andExpect(status().isBadRequest)
             .andExpect(jsonPath("$.message").value("비밀번호가 일치하지 않습니다. 기존에 사용하신 패스워드를 정확하게 입력해주세요."))
             .andExpect(jsonPath("$.statusCode").value("400 Bad Request"))
@@ -382,6 +404,8 @@ class UserControllerTest {
             put("/users/${user.id}/password")
                 .contentType(APPLICATION_JSON)
                 .content(json)
+                .cookie(setAtkCookie(user = user))
+                .cookie(setRtkCookie(user = user))
         ).andExpect(status().isBadRequest)
             .andExpect(jsonPath("$.message").value("두 비밀번호가 일치하지 않습니다."))
             .andExpect(jsonPath("$.statusCode").value("400 Bad Request"))
@@ -406,6 +430,8 @@ class UserControllerTest {
             put("/users/${user.id}/password")
                 .contentType(APPLICATION_JSON)
                 .content(json)
+                .cookie(setAtkCookie(user = user))
+                .cookie(setRtkCookie(user = user))
         ).andExpect(status().isBadRequest)
             .andExpect(jsonPath("$.message").value("올바르지 않은 비밀번호 형식입니다. (8~16자의 알파벳 대소문자, 숫자, 특수문자로 구성)"))
             .andExpect(jsonPath("$.statusCode").value("400 Bad Request"))
@@ -430,9 +456,31 @@ class UserControllerTest {
             put("/users/${user.id}/password")
                 .contentType(APPLICATION_JSON)
                 .content(json)
+                .cookie(setAtkCookie(user = user))
+                .cookie(setRtkCookie(user = user))
         ).andExpect(status().isBadRequest)
             .andExpect(jsonPath("$.message").value("기존 비밀번호를 입력해주세요."))
             .andExpect(jsonPath("$.statusCode").value("400 Bad Request"))
             .andDo(print())
     }
+
+    private fun setAtkCookie(user: User) =
+        jwtProvider.getAccessToken(userId = user.id!!, email = user.email, role = user.role)
+            .let { atk ->
+                Cookie("AccessToken", atk).let {
+                    it.path = "/"
+                    it.maxAge = ATK_EXPIRATION_TIME
+                    it
+                }
+            }
+
+    private fun setRtkCookie(user: User) =
+        jwtProvider.getAccessToken(userId = user.id!!, email = user.email, role = user.role)
+            .let { rtk ->
+                Cookie("RefreshToken", rtk).let {
+                    it.path = "/"
+                    it.maxAge = RTK_EXPIRATION_TIME
+                    it
+                }
+            }
 }

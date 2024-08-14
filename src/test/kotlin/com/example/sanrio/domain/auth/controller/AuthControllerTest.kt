@@ -1,14 +1,19 @@
 package com.example.sanrio.domain.auth.controller
 
 import com.example.sanrio.domain.cart.repository.CartRepository
+import com.example.sanrio.domain.order.controller.OrderControllerTest.Companion.ATK_EXPIRATION_TIME
+import com.example.sanrio.domain.order.controller.OrderControllerTest.Companion.RTK_EXPIRATION_TIME
 import com.example.sanrio.domain.user.dto.request.LoginRequest
 import com.example.sanrio.domain.user.model.User
 import com.example.sanrio.domain.user.repository.UserRepository
 import com.example.sanrio.global.auth.WithCustomMockUser
 import com.example.sanrio.global.jwt.AuthenticationHelper
 import com.example.sanrio.global.utility.EntityFinder
+import com.example.sanrio.global.utility.JwtProvider
 import com.example.sanrio.global.utility.NicknameGenerator.generateNickname
 import com.fasterxml.jackson.databind.ObjectMapper
+import jakarta.servlet.http.Cookie
+import jakarta.servlet.http.HttpServletResponse
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
@@ -43,6 +48,12 @@ class AuthControllerTest {
     lateinit var authenticationHelper: AuthenticationHelper
 
     @Autowired
+    lateinit var jwtProvider: JwtProvider
+
+    @Autowired
+    lateinit var response: HttpServletResponse
+
+    @Autowired
     lateinit var userRepository: UserRepository
 
     @Autowired
@@ -52,6 +63,7 @@ class AuthControllerTest {
     fun clean() {
         cartRepository.deleteAll()
         userRepository.deleteAll()
+        jwtProvider.deleteCookie(response = response)
     }
 
     @Test
@@ -136,6 +148,8 @@ class AuthControllerTest {
         val result = mockMvc.perform(
             get("/logout")
                 .contentType(APPLICATION_JSON)
+                .cookie(setAtkCookie(user = user))
+                .cookie(setRtkCookie(user = user))
         ).andExpect(status().isOk)
             .andDo(print())
             .andReturn()
@@ -146,6 +160,26 @@ class AuthControllerTest {
         assertThat(cookieAtk.maxAge).isEqualTo(0)
         assertThat(cookieRtk.maxAge).isEqualTo(0)
     }
+
+    private fun setAtkCookie(user: User) =
+        jwtProvider.getAccessToken(userId = user.id!!, email = user.email, role = user.role)
+            .let { atk ->
+                Cookie("AccessToken", atk).let {
+                    it.path = "/"
+                    it.maxAge = ATK_EXPIRATION_TIME
+                    it
+                }
+            }
+
+    private fun setRtkCookie(user: User) =
+        jwtProvider.getAccessToken(userId = user.id!!, email = user.email, role = user.role)
+            .let { rtk ->
+                Cookie("RefreshToken", rtk).let {
+                    it.path = "/"
+                    it.maxAge = RTK_EXPIRATION_TIME
+                    it
+                }
+            }
 
     private fun getUser() = User(
         email = "test@gmail.com",

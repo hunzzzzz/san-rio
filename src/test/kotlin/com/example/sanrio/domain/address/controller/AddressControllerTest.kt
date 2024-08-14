@@ -4,14 +4,19 @@ import com.example.sanrio.domain.address.dto.request.AddressRequest
 import com.example.sanrio.domain.address.model.Address
 import com.example.sanrio.domain.address.repository.AddressRepository
 import com.example.sanrio.domain.cart.repository.CartRepository
+import com.example.sanrio.domain.order.controller.OrderControllerTest.Companion.ATK_EXPIRATION_TIME
+import com.example.sanrio.domain.order.controller.OrderControllerTest.Companion.RTK_EXPIRATION_TIME
 import com.example.sanrio.domain.user.model.User
 import com.example.sanrio.domain.user.repository.UserRepository
-import com.example.sanrio.global.jwt.AuthenticationHelper
 import com.example.sanrio.global.auth.WithCustomMockUser
+import com.example.sanrio.global.jwt.AuthenticationHelper
 import com.example.sanrio.global.utility.Encryptor
 import com.example.sanrio.global.utility.EntityFinder
+import com.example.sanrio.global.utility.JwtProvider
 import com.example.sanrio.global.utility.NicknameGenerator.generateNickname
 import com.fasterxml.jackson.databind.ObjectMapper
+import jakarta.servlet.http.Cookie
+import jakarta.servlet.http.HttpServletResponse
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
@@ -49,6 +54,12 @@ class AddressControllerTest {
     lateinit var objectMapper: ObjectMapper
 
     @Autowired
+    lateinit var jwtProvider: JwtProvider
+
+    @Autowired
+    lateinit var response: HttpServletResponse
+
+    @Autowired
     lateinit var userRepository: UserRepository
 
     @Autowired
@@ -62,6 +73,7 @@ class AddressControllerTest {
         cartRepository.deleteAll()
         addressRepository.deleteAll()
         userRepository.deleteAll()
+        jwtProvider.deleteCookie(response = response)
     }
 
     @Test
@@ -77,6 +89,8 @@ class AddressControllerTest {
             post("/users/${user.id}/address")
                 .contentType(APPLICATION_JSON)
                 .content(json)
+                .cookie(setAtkCookie(user = user))
+                .cookie(setRtkCookie(user = user))
         ).andExpect(status().isCreated)
             .andDo(print())
 
@@ -105,6 +119,8 @@ class AddressControllerTest {
             post("/users/${user.id}/address")
                 .contentType(APPLICATION_JSON)
                 .content(json)
+                .cookie(setAtkCookie(user = user))
+                .cookie(setRtkCookie(user = user))
         ).andExpect(status().isCreated)
             .andDo(print())
 
@@ -127,6 +143,8 @@ class AddressControllerTest {
             post("/users/${user.id}/address")
                 .contentType(APPLICATION_JSON)
                 .content(json)
+                .cookie(setAtkCookie(user = user))
+                .cookie(setRtkCookie(user = user))
         ).andExpect(status().isBadRequest)
             .andExpect(jsonPath("$.message").value("도로명 주소를 입력해주세요."))
             .andExpect(jsonPath("$.statusCode").value("400 Bad Request"))
@@ -146,6 +164,8 @@ class AddressControllerTest {
             post("/users/${user.id}/address")
                 .contentType(APPLICATION_JSON)
                 .content(json)
+                .cookie(setAtkCookie(user = user))
+                .cookie(setRtkCookie(user = user))
         ).andExpect(status().isBadRequest)
             .andExpect(jsonPath("$.message").value("일치하지 않는 우편번호입니다."))
             .andExpect(jsonPath("$.statusCode").value("400 Bad Request"))
@@ -166,6 +186,8 @@ class AddressControllerTest {
             post("/users/${anotherUser.id}/address")
                 .contentType(APPLICATION_JSON)
                 .content(json)
+                .cookie(setAtkCookie(user = user))
+                .cookie(setRtkCookie(user = user))
         ).andExpect(status().isForbidden)
             .andExpect(jsonPath("$.message").value("권한이 없습니다."))
             .andExpect(jsonPath("$.statusCode").value("403 Forbidden"))
@@ -189,6 +211,8 @@ class AddressControllerTest {
         mockMvc.perform(
             put("/users/${user.id}/address/${newAddress.id}/default")
                 .contentType(APPLICATION_JSON)
+                .cookie(setAtkCookie(user = user))
+                .cookie(setRtkCookie(user = user))
         ).andExpect(status().isOk)
             .andDo(print())
 
@@ -207,6 +231,8 @@ class AddressControllerTest {
         mockMvc.perform(
             put("/users/${user.id}/address/${address.id}/default")
                 .contentType(APPLICATION_JSON)
+                .cookie(setAtkCookie(user = user))
+                .cookie(setRtkCookie(user = user))
         ).andExpect(status().isBadRequest)
             .andExpect(jsonPath("$.message").value("이미 기본 주소로 설정되어 있습니다."))
             .andExpect(jsonPath("$.statusCode").value("400 Bad Request"))
@@ -225,11 +251,33 @@ class AddressControllerTest {
         mockMvc.perform(
             put("/users/${anotherUser.id}/address/${address.id}/default")
                 .contentType(APPLICATION_JSON)
+                .cookie(setAtkCookie(user = user))
+                .cookie(setRtkCookie(user = user))
         ).andExpect(status().isForbidden)
             .andExpect(jsonPath("$.message").value("권한이 없습니다."))
             .andExpect(jsonPath("$.statusCode").value("403 Forbidden"))
             .andDo(print())
     }
+
+    private fun setAtkCookie(user: User) =
+        jwtProvider.getAccessToken(userId = user.id!!, email = user.email, role = user.role)
+            .let { atk ->
+                Cookie("AccessToken", atk).let {
+                    it.path = "/"
+                    it.maxAge = ATK_EXPIRATION_TIME
+                    it
+                }
+            }
+
+    private fun setRtkCookie(user: User) =
+        jwtProvider.getAccessToken(userId = user.id!!, email = user.email, role = user.role)
+            .let { rtk ->
+                Cookie("RefreshToken", rtk).let {
+                    it.path = "/"
+                    it.maxAge = RTK_EXPIRATION_TIME
+                    it
+                }
+            }
 
     private fun setUser() =
         User(
