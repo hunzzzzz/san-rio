@@ -5,6 +5,7 @@ import com.example.sanrio.domain.cart.model.Cart
 import com.example.sanrio.domain.cart.repository.CartItemRepository
 import com.example.sanrio.domain.cart.repository.CartRepository
 import com.example.sanrio.domain.order.repository.OrderRepository
+import com.example.sanrio.domain.order.repository.RecallRepository
 import com.example.sanrio.domain.product.model.Product
 import com.example.sanrio.domain.product.repository.ProductRepository
 import com.example.sanrio.domain.user.model.User
@@ -20,7 +21,8 @@ class EntityFinder(
     private val productRepository: ProductRepository,
     private val cartRepository: CartRepository,
     private val cartItemRepository: CartItemRepository,
-    private val orderRepository: OrderRepository
+    private val orderRepository: OrderRepository,
+    private val recallRepository: RecallRepository
 ) {
     fun findProductById(productId: Long) =
         productRepository.findByIdOrNull(productId) ?: throw ModelNotFoundException("상품")
@@ -34,6 +36,9 @@ class EntityFinder(
 
     fun findOrderById(orderId: Long) =
         orderRepository.findByIdOrNull(orderId) ?: throw ModelNotFoundException("주문")
+
+    fun findRecallByOrderId(orderId: Long) =
+        recallRepository.findByOrder(order = findOrderById(orderId = orderId)) ?: throw ModelNotFoundException("반품")
 
     fun findUserById(userId: Long) =
         userRepository.findByIdOrNull(userId) ?: throw ModelNotFoundException("유저")

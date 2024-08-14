@@ -7,11 +7,14 @@ import com.example.sanrio.domain.cart.model.CartItem
 import com.example.sanrio.domain.cart.repository.CartItemRepository
 import com.example.sanrio.domain.cart.repository.CartRepository
 import com.example.sanrio.domain.order.dto.request.OrderRequest
+import com.example.sanrio.domain.order.dto.request.RecallRequest
 import com.example.sanrio.domain.order.model.Order
 import com.example.sanrio.domain.order.model.OrderItem
 import com.example.sanrio.domain.order.model.OrderStatus
+import com.example.sanrio.domain.order.model.RecallReason
 import com.example.sanrio.domain.order.repository.OrderItemRepository
 import com.example.sanrio.domain.order.repository.OrderRepository
+import com.example.sanrio.domain.order.repository.RecallRepository
 import com.example.sanrio.domain.product.model.CharacterName
 import com.example.sanrio.domain.product.model.Product
 import com.example.sanrio.domain.product.model.ProductStatus
@@ -23,9 +26,12 @@ import com.example.sanrio.global.auth.WithCustomMockUser
 import com.example.sanrio.global.jwt.AuthenticationHelper
 import com.example.sanrio.global.utility.Encryptor
 import com.example.sanrio.global.utility.EntityFinder
+import com.example.sanrio.global.utility.JwtProvider
 import com.example.sanrio.global.utility.NicknameGenerator.generateNickname
 import com.example.sanrio.global.utility.OrderCodeGenerator
 import com.fasterxml.jackson.databind.ObjectMapper
+import jakarta.servlet.http.Cookie
+import jakarta.servlet.http.HttpServletResponse
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
@@ -60,6 +66,9 @@ class OrderControllerTest {
     lateinit var objectMapper: ObjectMapper
 
     @Autowired
+    lateinit var jwtProvider: JwtProvider
+
+    @Autowired
     lateinit var addressRepository: AddressRepository
 
     @Autowired
@@ -80,8 +89,15 @@ class OrderControllerTest {
     @Autowired
     lateinit var orderItemRepository: OrderItemRepository
 
+    @Autowired
+    lateinit var recallRepository: RecallRepository
+
+    @Autowired
+    lateinit var response: HttpServletResponse
+
     @AfterEach
     fun clean() {
+        recallRepository.deleteAll()
         orderItemRepository.deleteAll()
         orderRepository.deleteAll()
         cartItemRepository.deleteAll()
@@ -89,6 +105,8 @@ class OrderControllerTest {
         productRepository.deleteAll()
         addressRepository.deleteAll()
         userRepository.deleteAll()
+
+        jwtProvider.deleteCookie(response = response)
     }
 
     @Test
@@ -108,6 +126,8 @@ class OrderControllerTest {
         mockMvc.perform(
             post("/orders")
                 .contentType(APPLICATION_JSON)
+                .cookie(setAtkCookie(user = user))
+                .cookie(setRtkCookie(user = user))
         ).andExpect(status().isOk)
             .andDo(print())
 
@@ -125,7 +145,6 @@ class OrderControllerTest {
         // given
         val user = entityFinder.findUserById(authenticationHelper.getCurrentUser().id)
         val cart = setCart(user = user)
-
         val initialPoint = user.point
         val usingPoint = 1000
 
@@ -141,6 +160,8 @@ class OrderControllerTest {
             post("/orders")
                 .contentType(APPLICATION_JSON)
                 .content(json)
+                .cookie(setAtkCookie(user = user))
+                .cookie(setRtkCookie(user = user))
         ).andExpect(status().isOk)
             .andDo(print())
 
@@ -163,6 +184,8 @@ class OrderControllerTest {
         mockMvc.perform(
             post("/orders")
                 .contentType(APPLICATION_JSON)
+                .cookie(setAtkCookie(user = user))
+                .cookie(setRtkCookie(user = user))
         ).andExpect(status().isOk)
             .andDo(print())
 
@@ -184,6 +207,8 @@ class OrderControllerTest {
         mockMvc.perform(
             post("/orders")
                 .contentType(APPLICATION_JSON)
+                .cookie(setAtkCookie(user = user))
+                .cookie(setRtkCookie(user = user))
         ).andExpect(status().isBadRequest)
             .andExpect(jsonPath("$.message").value("장바구니에 상품이 존재하지 않습니다."))
             .andExpect(jsonPath("$.statusCode").value("400 Bad Request"))
@@ -205,6 +230,8 @@ class OrderControllerTest {
         mockMvc.perform(
             post("/orders")
                 .contentType(APPLICATION_JSON)
+                .cookie(setAtkCookie(user = user))
+                .cookie(setRtkCookie(user = user))
         ).andExpect(status().isBadRequest)
             .andExpect(jsonPath("$.message").value("장바구니에 품절된 상품이 포함되어 있습니다."))
             .andExpect(jsonPath("$.statusCode").value("400 Bad Request"))
@@ -223,6 +250,8 @@ class OrderControllerTest {
         mockMvc.perform(
             get("/orders")
                 .contentType(APPLICATION_JSON)
+                .cookie(setAtkCookie(user = user))
+                .cookie(setRtkCookie(user = user))
         ).andExpect(status().isOk)
             .andExpect(jsonPath("$.size").value(ORDER_PAGE_SIZE))
             .andExpect(
@@ -244,6 +273,8 @@ class OrderControllerTest {
         mockMvc.perform(
             get("/orders?cursorId=${cursorId}")
                 .contentType(APPLICATION_JSON)
+                .cookie(setAtkCookie(user = user))
+                .cookie(setRtkCookie(user = user))
         ).andExpect(status().isOk)
             .andExpect(jsonPath("$.size").value(ORDER_PAGE_SIZE))
             .andExpect(
@@ -264,6 +295,8 @@ class OrderControllerTest {
         mockMvc.perform(
             get("/orders?cursorId=${cursorId}")
                 .contentType(APPLICATION_JSON)
+                .cookie(setAtkCookie(user = user))
+                .cookie(setRtkCookie(user = user))
         ).andExpect(status().isOk)
             .andExpect(jsonPath("$.size").value(ORDER_PAGE_SIZE))
             .andExpect(jsonPath("$.contents.size()").value(0))
@@ -281,6 +314,8 @@ class OrderControllerTest {
         mockMvc.perform(
             get("/orders")
                 .contentType(APPLICATION_JSON)
+                .cookie(setAtkCookie(user = user))
+                .cookie(setRtkCookie(user = user))
         ).andExpect(status().isOk)
             .andExpect(jsonPath("$.size").value(ORDER_PAGE_SIZE))
             .andExpect(jsonPath("$.contents.size()").value(0))
@@ -296,8 +331,10 @@ class OrderControllerTest {
 
         // expected
         mockMvc.perform(
-            get("/orders/cancel/${order.id}")
+            get("/orders/${order.id}/cancel")
                 .contentType(APPLICATION_JSON)
+                .cookie(setAtkCookie(user = user))
+                .cookie(setRtkCookie(user = user))
         ).andExpect(status().isOk)
             .andDo(print())
 
@@ -308,16 +345,18 @@ class OrderControllerTest {
     @WithCustomMockUser
     fun 본인이_아닌_주문에_대한_취소_신청한_경우() {
         // given
-        val user1 = entityFinder.findUserById(authenticationHelper.getCurrentUser().id)
-        val user2 = setUser()
-        val order = setOrder(user = user2)
+        val user = entityFinder.findUserById(authenticationHelper.getCurrentUser().id)
+        val anotherUser = setUser()
+        val order = setOrder(user = anotherUser)
 
         // expected
         mockMvc.perform(
-            get("/orders/cancel/${order.id}")
+            get("/orders/${order.id}/cancel")
                 .contentType(APPLICATION_JSON)
+                .cookie(setAtkCookie(user = user))
+                .cookie(setRtkCookie(user = user))
         ).andExpect(status().isBadRequest)
-            .andExpect(jsonPath("$.message").value("본인의 주문 건에 대한 취소 신청만 가능합니다."))
+            .andExpect(jsonPath("$.message").value("본인의 주문 건에 대해서만 취소 및 반품 신청이 가능합니다."))
             .andExpect(jsonPath("$.statusCode").value("400 Bad Request"))
             .andDo(print())
     }
@@ -331,8 +370,10 @@ class OrderControllerTest {
 
         // expected
         mockMvc.perform(
-            get("/orders/cancel/${order.id}")
+            get("/orders/${order.id}/cancel")
                 .contentType(APPLICATION_JSON)
+                .cookie(setAtkCookie(user = user))
+                .cookie(setRtkCookie(user = user))
         ).andExpect(status().isBadRequest)
             .andExpect(jsonPath("$.message").value("해당 상품에 대한 배송이 시작되어, 취소가 불가능합니다."))
             .andExpect(jsonPath("$.statusCode").value("400 Bad Request"))
@@ -348,8 +389,10 @@ class OrderControllerTest {
 
         // expected
         mockMvc.perform(
-            get("/orders/cancel/${order.id}")
+            get("/orders/${order.id}/cancel")
                 .contentType(APPLICATION_JSON)
+                .cookie(setAtkCookie(user = user))
+                .cookie(setRtkCookie(user = user))
         ).andExpect(status().isBadRequest)
             .andExpect(jsonPath("$.message").value("잘못된 요청입니다. 취소가 불가능한 주문입니다."))
             .andExpect(jsonPath("$.statusCode").value("400 Bad Request"))
@@ -372,8 +415,10 @@ class OrderControllerTest {
 
         // expected
         mockMvc.perform(
-            put("/orders/cancel/${order.id}")
+            put("/orders/${order.id}/cancel")
                 .contentType(APPLICATION_JSON)
+                .cookie(setAtkCookie(user = admin))
+                .cookie(setRtkCookie(user = admin))
         ).andExpect(status().isOk)
             .andDo(print())
 
@@ -381,8 +426,166 @@ class OrderControllerTest {
         assertThat(productRepository.findAll().map { it.stock }
             .count { it == AMOUNT_OF_PRODUCTS + quantity }).isEqualTo(productRepository.count())
         assertThat(entityFinder.findUserById(userId = user.id!!).point)
-            .isEqualTo(initialPoint + (order.usedPoint ?: 0) - (TEMP_TOTAL_PRICE * 0.02).toInt()) // 기존 포인트 + 사용 호인트 - 적립 포인트
+            .isEqualTo(
+                initialPoint + (order.usedPoint ?: 0) - (TEMP_TOTAL_PRICE * 0.02).toInt()
+            ) // 기존 포인트 + 사용 호인트 - 적립 포인트
     }
+
+    @Test
+    @WithCustomMockUser
+    fun 주문이_정상적으로_반품_신청된_경우() {
+        // given
+        val user = entityFinder.findUserById(authenticationHelper.getCurrentUser().id)
+        val order = setOrder(user = user, status = OrderStatus.DELIVERED)
+        val request = RecallRequest(reason = "DEFECTIVE", detail = "반품 세부 사유")
+        val json = objectMapper.writeValueAsString(request)
+
+        // expected
+        mockMvc.perform(
+            post("/orders/${order.id}/recall")
+                .contentType(APPLICATION_JSON)
+                .content(json)
+                .cookie(setAtkCookie(user = user))
+                .cookie(setRtkCookie(user = user))
+        ).andExpect(status().isOk)
+            .andDo(print())
+
+        assertThat(entityFinder.findOrderById(orderId = order.id!!).status).isEqualTo(OrderStatus.REQUESTED_FOR_RECALL)
+        assertThat(recallRepository.count()).isEqualTo(1)
+        assertThat(entityFinder.findRecallByOrderId(orderId = order.id!!).reason).isEqualTo(RecallReason.DEFECTIVE)
+        assertThat(entityFinder.findRecallByOrderId(orderId = order.id!!).detail).isEqualTo("반품 세부 사유")
+    }
+
+    @Test
+    @WithCustomMockUser
+    fun 본인이_아닌_주문에_대한_반품_신청한_경우() {
+        // given
+        val user = entityFinder.findUserById(authenticationHelper.getCurrentUser().id)
+        val anotherUser = setUser()
+        val order = setOrder(user = anotherUser, status = OrderStatus.DELIVERED)
+        val request = RecallRequest(reason = "DEFECTIVE", detail = "반품 세부 사유")
+        val json = objectMapper.writeValueAsString(request)
+
+        // expected
+        mockMvc.perform(
+            post("/orders/${order.id}/recall")
+                .contentType(APPLICATION_JSON)
+                .content(json)
+                .cookie(setAtkCookie(user = user))
+                .cookie(setRtkCookie(user = user))
+        ).andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.message").value("본인의 주문 건에 대해서만 취소 및 반품 신청이 가능합니다."))
+            .andExpect(jsonPath("$.statusCode").value("400 Bad Request"))
+            .andDo(print())
+    }
+
+    @Test
+    @WithCustomMockUser
+    fun 반품_사유에_올바르지_않은_값이_들어온_경우() {
+        // given
+        val user = entityFinder.findUserById(authenticationHelper.getCurrentUser().id)
+        val order = setOrder(user = user, status = OrderStatus.CANCELLED)
+        val request = RecallRequest(reason = "WRONG", detail = "반품 세부 사유")
+        val json = objectMapper.writeValueAsString(request)
+
+        // expected
+        mockMvc.perform(
+            post("/orders/${order.id}/recall")
+                .contentType(APPLICATION_JSON)
+                .content(json)
+                .cookie(setAtkCookie(user = user))
+                .cookie(setRtkCookie(user = user))
+        ).andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.message").value("올바르지 않은 반품 사유입니다. 다시 확인해주세요."))
+            .andExpect(jsonPath("$.statusCode").value("400 Bad Request"))
+            .andDo(print())
+    }
+
+    @Test
+    @WithCustomMockUser
+    fun 반품_사유를_기타로_설정했는데_세부_사유를_입력하지_않은_경우() {
+        // given
+        val user = entityFinder.findUserById(authenticationHelper.getCurrentUser().id)
+        val order = setOrder(user = user, status = OrderStatus.DELIVERED)
+        val request = RecallRequest(reason = "ETC", detail = "")
+        val json = objectMapper.writeValueAsString(request)
+
+        // expected
+        mockMvc.perform(
+            post("/orders/${order.id}/recall")
+                .contentType(APPLICATION_JSON)
+                .content(json)
+                .cookie(setAtkCookie(user = user))
+                .cookie(setRtkCookie(user = user))
+        ).andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.message").value("반품 사유를 입력해주세요."))
+            .andExpect(jsonPath("$.statusCode").value("400 Bad Request"))
+            .andDo(print())
+    }
+
+    @Test
+    @WithCustomMockUser
+    fun 배송중인_주문에_대한_반품_신청한_경우() {
+        // given
+        val user = entityFinder.findUserById(authenticationHelper.getCurrentUser().id)
+        val order = setOrder(user = user, status = OrderStatus.SHIPPING)
+        val request = RecallRequest(reason = "DEFECTIVE", detail = "반품 세부 사유")
+        val json = objectMapper.writeValueAsString(request)
+
+        // expected
+        mockMvc.perform(
+            post("/orders/${order.id}/recall")
+                .contentType(APPLICATION_JSON)
+                .content(json)
+                .cookie(setAtkCookie(user = user))
+                .cookie(setRtkCookie(user = user))
+        ).andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.message").value("해당 상품에 대한 배송이 시작되어, 반품 신청이 불가능합니다. 배송 완료 후 신청해주세요."))
+            .andExpect(jsonPath("$.statusCode").value("400 Bad Request"))
+            .andDo(print())
+    }
+
+    @Test
+    @WithCustomMockUser
+    fun 취소완료인_주문에_대한_반품_신청한_경우() {
+        // given
+        val user = entityFinder.findUserById(authenticationHelper.getCurrentUser().id)
+        val order = setOrder(user = user, status = OrderStatus.CANCELLED)
+        val request = RecallRequest(reason = "DEFECTIVE", detail = "반품 세부 사유")
+        val json = objectMapper.writeValueAsString(request)
+
+        // expected
+        mockMvc.perform(
+            post("/orders/${order.id}/recall")
+                .contentType(APPLICATION_JSON)
+                .content(json)
+                .cookie(setAtkCookie(user = user))
+                .cookie(setRtkCookie(user = user))
+        ).andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.message").value("잘못된 요청입니다. 반품 신청이 불가능합니다."))
+            .andExpect(jsonPath("$.statusCode").value("400 Bad Request"))
+            .andDo(print())
+    }
+
+    private fun setAtkCookie(user: User) =
+        jwtProvider.getAccessToken(userId = user.id!!, email = user.email, role = user.role)
+            .let { atk ->
+                Cookie("AccessToken", atk).let {
+                    it.path = "/"
+                    it.maxAge = ATK_EXPIRATION_TIME
+                    it
+                }
+            }
+
+    private fun setRtkCookie(user: User) =
+        jwtProvider.getAccessToken(userId = user.id!!, email = user.email, role = user.role)
+            .let { rtk ->
+                Cookie("RefreshToken", rtk).let {
+                    it.path = "/"
+                    it.maxAge = RTK_EXPIRATION_TIME
+                    it
+                }
+            }
 
     private fun setUser() = User(
         role = UserRole.USER,
@@ -478,5 +681,7 @@ class OrderControllerTest {
         const val TEMP_TOTAL_PRICE = 100_000
         const val PRICE_OF_PRODUCTS = 10_000
         const val AMOUNT_OF_PRODUCTS = 100
+        const val ATK_EXPIRATION_TIME = 1000 * 60 // 1분
+        const val RTK_EXPIRATION_TIME = 1000 * 60 * 5 // 5분
     }
 }
