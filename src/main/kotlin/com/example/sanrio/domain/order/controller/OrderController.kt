@@ -1,9 +1,11 @@
 package com.example.sanrio.domain.order.controller
 
 import com.example.sanrio.domain.order.dto.request.OrderRequest
+import com.example.sanrio.domain.order.dto.request.RecallRequest
 import com.example.sanrio.domain.order.model.OrderPeriod
 import com.example.sanrio.domain.order.service.OrderService
 import com.example.sanrio.global.jwt.UserPrincipal
+import jakarta.validation.Valid
 import org.springframework.context.annotation.Description
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
@@ -33,7 +35,7 @@ class OrderController(
         .let { ResponseEntity.ok().body(it) }
 
     @Description("주문 취소 신청")
-    @GetMapping("/cancel/{orderId}")
+    @GetMapping("/{orderId}/cancel")
     fun cancelOrder(
         @AuthenticationPrincipal userPrincipal: UserPrincipal,
         @PathVariable orderId: Long
@@ -42,10 +44,19 @@ class OrderController(
 
     @Description("주문 취소 신청 승인")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    @PutMapping("/cancel/{orderId}")
+    @PutMapping("/{orderId}/cancel")
     fun acceptCancelOrder(
         @AuthenticationPrincipal userPrincipal: UserPrincipal,
         @PathVariable orderId: Long,
     ) = orderService.acceptCancelOrder(userId = userPrincipal.id, orderId = orderId)
+        .let { ResponseEntity.ok().body(it) }
+
+    @Description("반품 신청")
+    @PostMapping("/{orderId}/recall")
+    fun recallOrder(
+        @AuthenticationPrincipal userPrincipal: UserPrincipal,
+        @PathVariable orderId: Long,
+        @Valid @RequestBody request: RecallRequest
+    ) = orderService.recallOrder(userId = userPrincipal.id, orderId = orderId, request = request)
         .let { ResponseEntity.ok().body(it) }
 }

@@ -5,6 +5,11 @@ import com.example.sanrio.global.model.BaseEntity
 import jakarta.persistence.*
 import org.springframework.context.annotation.Description
 
+/**
+[중요 사항]
+Order 객체에서 수정될 수 있는 값은 오직 status 뿐이다.
+ */
+
 @Entity
 @Table(name = "orders")
 class Order(
@@ -28,7 +33,7 @@ class Order(
     val orderRequest: String,
 
     @Column(name = "used_point", nullable = true)
-    val usedPoint: Int?,
+    val usedPoint: Int? = null,
 
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)

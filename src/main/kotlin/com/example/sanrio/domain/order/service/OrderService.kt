@@ -5,14 +5,13 @@ import com.example.sanrio.domain.cart.model.Cart
 import com.example.sanrio.domain.cart.model.CartItem
 import com.example.sanrio.domain.cart.repository.CartItemRepository
 import com.example.sanrio.domain.order.dto.request.OrderRequest
+import com.example.sanrio.domain.order.dto.request.RecallRequest
 import com.example.sanrio.domain.order.dto.response.OrderDataResponse
 import com.example.sanrio.domain.order.dto.response.OrderSliceResponse
-import com.example.sanrio.domain.order.model.Order
-import com.example.sanrio.domain.order.model.OrderItem
-import com.example.sanrio.domain.order.model.OrderPeriod
-import com.example.sanrio.domain.order.model.OrderStatus
+import com.example.sanrio.domain.order.model.*
 import com.example.sanrio.domain.order.repository.OrderItemRepository
 import com.example.sanrio.domain.order.repository.OrderRepository
+import com.example.sanrio.domain.order.repository.RecallRepository
 import com.example.sanrio.domain.product.model.ProductStatus.SOLD_OUT
 import com.example.sanrio.domain.user.model.User
 import com.example.sanrio.global.exception.case.OrderException
@@ -22,6 +21,7 @@ import jakarta.transaction.Transactional
 import org.springframework.context.annotation.Description
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
+import java.time.LocalDateTime
 
 @Service
 class OrderService(
@@ -29,6 +29,7 @@ class OrderService(
     private val orderItemRepository: OrderItemRepository,
     private val cartItemRepository: CartItemRepository,
     private val addressRepository: AddressRepository,
+    private val recallRepository: RecallRepository,
     private val entityFinder: EntityFinder
 ) {
     @Description("품절 상품 여부 확인")
@@ -55,6 +56,38 @@ class OrderService(
         cart.resetTotalPrice()
         cartItemRepository.deleteAllByCart(cart = cart)
     }
+
+    @Description("결제완료(PAID)인 주문만 취소")
+    private fun checkPaid(status: OrderStatus) =
+        check(status == OrderStatus.PAID) {
+            if (status == OrderStatus.SHIPPING) throw OrderException("해당 상품에 대한 배송이 시작되어, 취소가 불가능합니다.")
+            else throw OrderException("잘못된 요청입니다. 취소가 불가능한 주문입니다.")
+        }
+
+    @Description("배송완료(DELIVERED)인 주문만 반품 신청 가능")
+    private fun checkDelivered(status: OrderStatus) =
+        check(status == OrderStatus.DELIVERED) {
+            if (status == OrderStatus.SHIPPING) throw OrderException("해당 상품에 대한 배송이 시작되어, 반품 신청이 불가능합니다. 배송 완료 후 신청해주세요.")
+            throw OrderException("잘못된 요청입니다. 반품 신청이 불가능합니다.")
+        }
+
+    @Description("배송완료(DELIVERED) 후 24시간 내로 반품 신청 가능")
+    private fun checkValidDate(updatedAt: LocalDateTime) =
+        check(updatedAt <= LocalDateTime.now().plusDays(1))
+        { throw OrderException("반품 신청 기한이 지났습니다. 반품 신청은 배송 완료 후 24시간 이내에만 가능합니다.") }
+
+    @Description("유효한 RecallReason인지 확인")
+    private fun checkValidReason(reason: String) =
+        check(RecallReason.entries.map { it.toString() }
+            .contains(reason)) { throw OrderException("올바르지 않은 반품 사유입니다. 다시 확인해주세요.") }
+
+    @Description("반품 이유를 기타(ETC)로 선택한 경우, 반품 사유를 반드시 입력")
+    private fun checkRecallDetail(reason: RecallReason, detail: String?) =
+        if (reason == RecallReason.ETC) check(!detail.isNullOrBlank()) { throw OrderException("반품 사유를 입력해주세요.") } else Unit
+
+    @Description("해당 유저가 진행한 주문이 맞는지 확인")
+    private fun checkUser(order: Order, user: User) =
+        check(order.user.id == user.id) { throw OrderException("본인의 주문 건에 대해서만 취소 및 반품 신청이 가능합니다.") }
 
     @Description("장바구니에 있는 상품들에 대한 주문을 진행")
     @Transactional
@@ -124,17 +157,6 @@ class OrderService(
         return OrderSliceResponse(size = slice.size, numberOfElements = slice.numberOfElements, contents = list)
     }
 
-    @Description("결제완료(PAID)인 주문만 취소")
-    private fun checkStatus(status: OrderStatus) =
-        check(status == OrderStatus.PAID) {
-            if (status == OrderStatus.SHIPPING) throw OrderException("해당 상품에 대한 배송이 시작되어, 취소가 불가능합니다.")
-            else throw OrderException("잘못된 요청입니다. 취소가 불가능한 주문입니다.")
-        }
-
-    @Description("해당 유저가 진행한 주문이 맞는지 확인")
-    private fun checkUser(order: Order, user: User) =
-        check(order.user.id == user.id) { throw OrderException("본인의 주문 건에 대한 취소 신청만 가능합니다.") }
-
     @Description("주문 취소 신청")
     @Transactional
     fun cancelOrder(userId: Long, orderId: Long) {
@@ -142,7 +164,7 @@ class OrderService(
         val order = entityFinder.findOrderById(orderId = orderId)
 
         checkUser(order = order, user = user)
-        checkStatus(status = order.status)
+        checkPaid(status = order.status)
 
         order.updateStatus(status = OrderStatus.REQUESTED_FOR_CANCEL)
     }
@@ -165,6 +187,23 @@ class OrderService(
 
         // 취소 완료
         order.updateStatus(status = OrderStatus.CANCELLED)
+    }
+
+    @Description("반품 신청")
+    @Transactional
+    fun recallOrder(userId: Long, orderId: Long, request: RecallRequest) {
+        val order = entityFinder.findOrderById(orderId = orderId)
+        val user = entityFinder.findUserById(userId = userId)
+
+        checkUser(order = order, user = user)
+        checkValidReason(reason = request.reason!!)
+        checkDelivered(status = order.status)
+        checkValidDate(updatedAt = order.updatedAt)
+        checkRecallDetail(reason = RecallReason.valueOf(request.reason), detail = request.detail)
+
+        order.updateStatus(status = OrderStatus.REQUESTED_FOR_RECALL)
+
+        request.to(order = order).let { recallRepository.save(it) }
     }
 
     companion object {
