@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*
 class UserController(
     private val userService: UserService
 ) {
-    @GetMapping("{userId}")
+    @GetMapping("/{userId}")
     fun get(
         @PathVariable userId: Long
     ): ResponseEntity<UserResponse> {

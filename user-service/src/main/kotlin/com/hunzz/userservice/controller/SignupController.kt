@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController
 class SignupController(
     private val signupService: SignupService
 ) {
-    @PostMapping("/signup")
+    @PostMapping
     fun signup(
         @RequestBody request: SignupRequest
     ): ResponseEntity<UserResponse> {

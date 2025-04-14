@@ -24,6 +24,30 @@ class UserServiceTest {
     private lateinit var userService: UserService
 
     @Test
+    fun `프로필 조회 요청 시 User 객체를 UserResponse로 변환하여 반환한다`() {
+        // given
+        val userId = 1L
+        val savedUser = User(
+            id = userId,
+            loginId = "testId",
+            password = "oldPassword",
+            name = "oldName"
+        )
+
+        every { userRepository.findByIdOrNull(any()) } returns savedUser
+
+        // when
+        val response = userService.get(userId = userId)
+
+        // then
+        verify(exactly = 1) { userRepository.findByIdOrNull(any()) }
+        assertEquals(savedUser.id, response.userId)
+        assertEquals(savedUser.loginId, response.loginId)
+        assertEquals(savedUser.name, response.name)
+
+    }
+
+    @Test
     fun `update 성공 시 User 객체를 UserResponse로 변환하여 반환한다`() {
         // given
         val userId = 1L
