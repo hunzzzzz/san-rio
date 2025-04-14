@@ -1,8 +1,6 @@
 package com.hunzz.userservice.controller
 
-import com.hunzz.userservice.dto.request.LoginRequest
-import com.hunzz.userservice.dto.request.SignupRequest
-import com.hunzz.userservice.dto.request.UpdateUserRequest
+import com.hunzz.userservice.dto.request.UpdatePasswordRequest
 import com.hunzz.userservice.dto.response.UserResponse
 import com.hunzz.userservice.service.UserService
 import org.springframework.http.HttpStatus
@@ -10,33 +8,25 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 
 @RestController
+@RequestMapping("/users")
 class UserController(
     private val userService: UserService
 ) {
-    @PostMapping("/signup")
-    fun signup(
-        @RequestBody request: SignupRequest
+    @GetMapping("{userId}")
+    fun get(
+        @PathVariable userId: Long
     ): ResponseEntity<UserResponse> {
-        val user = userService.signup(request = request)
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(user)
-    }
-
-    @PutMapping("/users/{userId}")
-    fun updateUser(
-        @PathVariable userId: Long,
-        @RequestBody request: UpdateUserRequest
-    ): ResponseEntity<UserResponse> {
-        val user = userService.update(userId = userId, request = request)
+        val user = userService.get(userId = userId)
 
         return ResponseEntity.status(HttpStatus.OK).body(user)
     }
 
-    @PostMapping("/login")
-    fun login(
-        @RequestBody request: LoginRequest
+    @PutMapping("/{userId}")
+    fun updatePassword(
+        @PathVariable userId: Long,
+        @RequestBody request: UpdatePasswordRequest
     ): ResponseEntity<UserResponse> {
-        val user = userService.login(request = request)
+        val user = userService.updatePassword(userId = userId, request = request)
 
         return ResponseEntity.status(HttpStatus.OK).body(user)
     }

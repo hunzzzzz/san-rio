@@ -8,3 +8,9 @@ spring:
     generate-ddl: true
     hibernate:
       ddl-auto: create
+
+---
+
+jwt:
+  secret:
+    key: ${JWT_SECRET_KEY}

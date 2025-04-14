@@ -6,3 +6,9 @@ spring:
     password:
   jpa:
     database-platform: org.hibernate.dialect.H2Dialect
+
+---
+
+jwt:
+  secret:
+    key: aWRvbnR3YW50YWxvdGZvcmNocmlzbWFzdGhlcmVpc2p1c3RvbmV0aGluZ2luZWVk
