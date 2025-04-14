@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: [ user-service ]
+        service: [ user-service, product-service ]
     steps:
       - name: Checkout
         uses: actions/checkout@v4

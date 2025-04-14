@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: product-service
+
+---
+
+spring:
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE}
+
+---
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, mappings
+  endpoint:
+    health:
+      show-details: always

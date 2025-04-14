@@ -1,5 +1,5 @@
 server:
-  port: 8081
+  port: 8082
 
 ---
 
@@ -16,6 +16,10 @@ spring:
 
 ---
 
-jwt:
-  secret:
-    key: aWRvbnR3YW50YWxvdGZvcmNocmlzbWFzdGhlcmVpc2p1c3RvbmV0aGluZ2luZWVk
+spring:
+  cassandra:
+    keyspace-name: product
+    port: 9042
+    contact-points: localhost
+    local-datacenter: dc1
+    schema-action: create_if_not_exists
