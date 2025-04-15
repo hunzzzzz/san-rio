@@ -1,4 +1,4 @@
-package com.hunzz.productservice.config
+package com.hunzz.productservice.utility.config
 
 import com.datastax.oss.driver.api.core.CqlSession
 import org.springframework.beans.factory.annotation.Value
